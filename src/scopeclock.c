@@ -36,7 +36,7 @@ void configDAC(void)
   /* Configure DAC */
   DAC1->CR = DAC_CR_DMAEN1 | 
       (0 << DAC_CR_TSEL1_Pos) | DAC_CR_TEN1 | DAC_CR_EN1 |
-      (0 << DAC_CR_TSEL2_Pos) | DAC_CR_TEN2 | DAC_CR_EN1;
+      (0 << DAC_CR_TSEL2_Pos) | DAC_CR_TEN2 | DAC_CR_EN2;
   
   /* Configure DMA1 channel 3 */
   DMA1_Channel3->CNDTR = DAC_BUFFER_SZ;
@@ -87,6 +87,6 @@ void main(void)
   configDAC();
   
   for (;;) {
-    __WFI();
+    //__WFI();
   }
 }
