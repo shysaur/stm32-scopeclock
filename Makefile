@@ -4,7 +4,7 @@ E_CC?=arm-none-eabi-gcc
 E_OBJCOPY?=arm-none-eabi-objcopy
 
 OUTPUT:=scopeclock
-DEBUG?=1
+DEBUG?=0
 OBJ_DIR = ./obj
 SRC_DIR = ./src
 

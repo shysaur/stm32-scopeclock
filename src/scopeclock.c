@@ -1,12 +1,21 @@
 #include "stm32f1xx.h"
+#include "math.h"
 #include <stdint.h>
 
 #define SET_BITS(dest, bits, mask) do { \
     (dest) = (dest) & ~(mask) | (bits); \
   } while (0)
 
-#define DAC_BUFFER_SZ 1000
-uint32_t dac_buffer[1000];
+#define DAC_BUFFER_SZ 1800
+uint32_t dac_buffer[DAC_BUFFER_SZ];
+
+#define OFF_X 1536
+#define OFF_Y 1536
+#define AMP_X 1024
+#define AMP_Y 1024
+#define FIX_TO_DAC(x) ((x) / (FIX_1 / AMP_X) + OFF_X)
+
+volatile uint32_t ms_counter = 0;
 
 
 void configPLLClock(void)
@@ -19,9 +28,6 @@ void configPLLClock(void)
       RCC_CFGR_PLLSRC_Msk | RCC_CFGR_PLLMULL_Msk);
   SET_BITS(RCC->CR, RCC_CR_PLLON, RCC_CR_PLLON_Msk);
   SET_BITS(RCC->CFGR, 2 << RCC_CFGR_SW_Pos, RCC_CFGR_SW_Msk);
-
-  /* Systick device configuration */
-  SysTick_Config(24 * 1000);
 }
 
 
@@ -48,20 +54,47 @@ void configDAC(void)
   /* Configure TIM6 */
   TIM6->CR2 = 2 << TIM_CR2_MMS_Pos;
   TIM6->PSC = 0;
-  TIM6->ARR = 24 - 1;
+  TIM6->ARR = (24 * 8) - 1;
   TIM6->CR1 = TIM_CR1_ARPE | TIM_CR1_CEN;
 }
 
 
+unsigned drawHand(uint32_t binangle, int32_t length, unsigned i, int32_t c)
+{
+  int32_t x0 = FIX_TO_DAC(sins(binangle) * 2 / 16);
+  int32_t y0 = FIX_TO_DAC(coss(binangle) * 2 / 16);
+  int32_t x1 = FIX_TO_DAC(sins(binangle) * length / 16);
+  int32_t y1 = FIX_TO_DAC(coss(binangle) * length / 16);
+  for (unsigned j=0; j<c; i++, j++) {
+    int32_t sa1 = (x0 * (c - j) + x1 * j) / c;
+    int32_t sa2 = (y0 * (c - j) + y1 * j) / c;
+    dac_buffer[i] = sa2 | (sa1 << 16);
+  }
+  return i;
+}
+
+void updateClockDisp(void)
+{
+  uint32_t h = ms_counter % (12 * 60 * 60 * 1000) / (12 * 60 * 60);
+  uint32_t m = ms_counter % (60 * 60 * 1000) / (60 * 60);
+  uint32_t s = ms_counter % (60 * 1000) / 60;
+
+  unsigned i = DAC_BUFFER_SZ/2;
+  i = drawHand(BINANG_90 - TO_BINANG(h, 1000), 8, i, (DAC_BUFFER_SZ/2)/3);
+  i = drawHand(BINANG_90 - TO_BINANG(m, 1000), 14, i, (DAC_BUFFER_SZ/2)/3);
+  i = drawHand(BINANG_90 - TO_BINANG(s, 1000), 15, i, (DAC_BUFFER_SZ/2)/3);
+}
+
 void SysTick_Handler(void)
 {
-  static uint32_t clock = 0;
-  clock++;
-  if (clock % 500 == 0) {
-    uint32_t n = (clock / 500) & 1;
+  ms_counter++;
+  if (ms_counter % 500 == 0) {
+    uint32_t n = (ms_counter / 500) & 1;
     SET_BITS(GPIOC->ODR, n << 8, 1 << 8);
     SET_BITS(GPIOC->ODR, (n ^ 1) << 9, 1 << 9);
   }
+  if (ms_counter % 50 == 0)
+    updateClockDisp();
 }
 
 
@@ -79,12 +112,18 @@ void main(void)
 
   configPLLClock();
 
-  for (int i=0; i<DAC_BUFFER_SZ; i++) {
-    uint16_t sa = i * 2048 / DAC_BUFFER_SZ + 1024;
-    dac_buffer[i] = sa | ((4096-sa) << 16);
+  int i, j;
+  int32_t x0,y0,x1,y1;
+  for (i=0; i<DAC_BUFFER_SZ/2; i++) {
+    uint32_t binang = TO_BINANG(i, DAC_BUFFER_SZ/2);
+    int32_t sa1 = FIX_TO_DAC(sins(binang));
+    int32_t sa2 = FIX_TO_DAC(coss(binang));
+    dac_buffer[i] = sa1 | (sa2 << 16);
   }
+  updateClockDisp();
 
   configDAC();
+  SysTick_Config(24 * 1000);
   
   for (;;) {
     //__WFI();
