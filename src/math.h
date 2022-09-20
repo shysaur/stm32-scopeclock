@@ -3,14 +3,18 @@
 
 #include <stdint.h>
 
-#define BINANG_0      (uint32_t)(0)
-#define BINANG_90     (uint32_t)(0x40000000)
-#define BINANG_180    (uint32_t)(0x80000000)
-#define TO_BINANG(x, xscale) ((uint32_t)(x) * (BINANG_180 / (((uint32_t)xscale) / 2)))
+typedef uint32_t t_binang;
+#define BINANG_0      (t_binang)(0)
+#define BINANG_90     (t_binang)(0x40000000)
+#define BINANG_180    (t_binang)(0x80000000)
+#define TO_BINANG(x, xscale) ((t_binang)(x) * (BINANG_180 / (((t_binang)xscale) / 2)))
 
-#define FIX_1         (int32_t)(0x10000)
+typedef int32_t t_fixp;
+#define FIX_1         (t_fixp)(0x10000)
+#define FIX_PI        (t_fixp)(0x3243f)
+#define FIX_MUL(a, b) (t_fixp)(((int64_t)(a) * (int64_t)(b)) / (int64_t)FIX_1)
 
-int32_t sins(uint32_t binangle);
-int32_t coss(uint32_t binangle);
+t_fixp sins(t_binang binangle);
+t_fixp coss(t_binang binangle);
 
 #endif

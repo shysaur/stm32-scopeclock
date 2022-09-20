@@ -35,7 +35,7 @@ static const uint8_t sin_table[] = {
   0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff
 };
 
-int32_t sins(uint32_t binangle)
+t_fixp sins(t_binang binangle)
 {
   uint32_t quadidx = binangle & ((1<<30)-1);
   uint32_t quad = binangle >> 30;
@@ -50,7 +50,7 @@ int32_t sins(uint32_t binangle)
   uint32_t finalscale = 0x10000;
   uint32_t lerpk = quadidx & (lerpscale - 1);
   uint32_t lerp = (a * (lerpscale - lerpk) + b * lerpk) / 255;
-  int32_t res = lerp / (lerpscale / finalscale); 
+  t_fixp res = lerp / (lerpscale / finalscale); 
 
   if (quad / 2 == 0)
     return res;
@@ -58,7 +58,7 @@ int32_t sins(uint32_t binangle)
     return -res;
 }
 
-int32_t coss(uint32_t binangle)
+t_fixp coss(t_binang binangle)
 {
   return sins(binangle + BINANG_180 / 2);
 }

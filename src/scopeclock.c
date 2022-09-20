@@ -1,5 +1,6 @@
 #include "stm32f1xx.h"
 #include "math.h"
+#include "draw.h"
 #include <stdint.h>
 
 #define SET_BITS(dest, bits, mask) do { \
@@ -8,12 +9,7 @@
 
 #define DAC_BUFFER_SZ 1800
 uint32_t dac_buffer[DAC_BUFFER_SZ];
-
-#define OFF_X 1536
-#define OFF_Y 1536
-#define AMP_X 1024
-#define AMP_Y 1024
-#define FIX_TO_DAC(x) ((x) / (FIX_1 / AMP_X) + OFF_X)
+unsigned dial_face_end;
 
 volatile uint32_t ms_counter = 0;
 
@@ -59,30 +55,68 @@ void configDAC(void)
 }
 
 
-unsigned drawHand(uint32_t binangle, int32_t length, unsigned i, int32_t c)
+void updateDialFace(void)
 {
-  int32_t x0 = FIX_TO_DAC(sins(binangle) * 2 / 16);
-  int32_t y0 = FIX_TO_DAC(coss(binangle) * 2 / 16);
-  int32_t x1 = FIX_TO_DAC(sins(binangle) * length / 16);
-  int32_t y1 = FIX_TO_DAC(coss(binangle) * length / 16);
-  for (unsigned j=0; j<c; i++, j++) {
-    int32_t sa1 = (x0 * (c - j) + x1 * j) / c;
-    int32_t sa2 = (y0 * (c - j) + y1 * j) / c;
-    dac_buffer[i] = sa2 | (sa1 << 16);
+  const char *labels[] = {
+    "12", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"
+  };
+  t_plot plot;
+  plot.i = 0;
+  plot.xyBuf = dac_buffer;
+  plot.xyBufSz = DAC_BUFFER_SZ;
+
+  for (int i=0; i<60; i++) {
+    t_binang ang = i * (BINANG_180 / 60) * 2;
+    t_fixp x = sins(ang);
+    t_fixp y = coss(ang);
+    t_fixp x0, y0, x1, y1;
+
+    if (i % 5 == 0) {
+      x0 = x * 14 / 16;
+      y0 = y * 14 / 16;
+    } else {
+      x0 = x * 15 / 16;
+      y0 = y * 15 / 16;
+    }
+    x1 = x;
+    y1 = y;
+    plotLine(&plot, x0, y0, x1, y1, 1);
+
+    if (i % 5 == 0) {
+      t_fixp height = FIX_1 * 2/16;
+      x0 = x * 12 / 16;
+      y0 = y * 12 / 16 - height/2;
+      t_fixp width = sizeString(height, labels[i/5]);
+      x0 -= width / 2;
+      plotString(&plot, x0, y0, height, labels[i/5]);
+    }
   }
-  return i;
+  dial_face_end = plot.i;
 }
 
 void updateClockDisp(void)
 {
-  uint32_t h = ms_counter % (12 * 60 * 60 * 1000) / (12 * 60 * 60);
-  uint32_t m = ms_counter % (60 * 60 * 1000) / (60 * 60);
-  uint32_t s = ms_counter % (60 * 1000) / 60;
+  t_binang angle;
+  t_plot plot;
+  plot.i = dial_face_end;
+  plot.xyBuf = dac_buffer;
+  plot.xyBufSz = DAC_BUFFER_SZ;
 
-  unsigned i = DAC_BUFFER_SZ/2;
-  i = drawHand(BINANG_90 - TO_BINANG(h, 1000), 8, i, (DAC_BUFFER_SZ/2)/3);
-  i = drawHand(BINANG_90 - TO_BINANG(m, 1000), 14, i, (DAC_BUFFER_SZ/2)/3);
-  i = drawHand(BINANG_90 - TO_BINANG(s, 1000), 15, i, (DAC_BUFFER_SZ/2)/3);
+  uint32_t h = ms_counter % (12 * 60 * 60 * 1000) / (12 * 60 * 60);
+  angle = BINANG_90 - TO_BINANG(h, 1000);
+  plotLine(&plot, 0, 0, sins(angle) * 10/16, coss(angle) * 10/16, 1);
+
+  uint32_t m = ms_counter % (60 * 60 * 1000) / (60 * 60);
+  angle = BINANG_90 - TO_BINANG(m, 1000);
+  plotLine(&plot, 0, 0, sins(angle) * 6/16, coss(angle) * 6/16, 1);
+
+  uint32_t s = ms_counter % (60 * 1000) / 60;
+  angle = BINANG_90 - TO_BINANG(s, 1000);
+  plotLine(&plot, 0, 0, sins(angle) * 11/16, coss(angle) * 11/16, 1);
+
+  for (; plot.i < plot.xyBufSz; plot.i++) {
+    dac_buffer[plot.i] = 0;
+  }
 }
 
 void SysTick_Handler(void)
