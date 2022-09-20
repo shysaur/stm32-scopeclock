@@ -1012,7 +1012,7 @@ static const uint8_t char_7a_vec[] = {
   'E'
 };
 
-const uint8_t *glyph_vectors[128] = {
+const uint8_t * const glyph_vectors[128] = {
           NULL,        NULL,        NULL,        NULL,
           NULL,        NULL,        NULL,        NULL,
           NULL,        NULL,        NULL,        NULL,
