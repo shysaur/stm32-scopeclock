@@ -104,15 +104,15 @@ void updateClockDisp(void)
 
   uint32_t h = ms_counter % (12 * 60 * 60 * 1000) / (12 * 60 * 60);
   angle = BINANG_90 - TO_BINANG(h, 1000);
-  plotLine(&plot, 0, 0, sins(angle) * 10/16, coss(angle) * 10/16, 1);
+  plotLine(&plot, 0, 0, coss(angle) * 6/16, sins(angle) * 6/16, 1);
 
   uint32_t m = ms_counter % (60 * 60 * 1000) / (60 * 60);
   angle = BINANG_90 - TO_BINANG(m, 1000);
-  plotLine(&plot, 0, 0, sins(angle) * 6/16, coss(angle) * 6/16, 1);
+  plotLine(&plot, 0, 0, coss(angle) * 10/16, sins(angle) * 10/16, 1);
 
   uint32_t s = ms_counter % (60 * 1000) / 60;
   angle = BINANG_90 - TO_BINANG(s, 1000);
-  plotLine(&plot, 0, 0, sins(angle) * 11/16, coss(angle) * 11/16, 1);
+  plotLine(&plot, 0, 0, coss(angle) * 11/16, sins(angle) * 11/16, 1);
 
   for (; plot.i < plot.xyBufSz; plot.i++) {
     dac_buffer[plot.i] = 0;
@@ -146,14 +146,7 @@ void main(void)
 
   configPLLClock();
 
-  int i, j;
-  int32_t x0,y0,x1,y1;
-  for (i=0; i<DAC_BUFFER_SZ/2; i++) {
-    uint32_t binang = TO_BINANG(i, DAC_BUFFER_SZ/2);
-    int32_t sa1 = FIX_TO_DAC(sins(binang));
-    int32_t sa2 = FIX_TO_DAC(coss(binang));
-    dac_buffer[i] = sa1 | (sa2 << 16);
-  }
+  updateDialFace();
   updateClockDisp();
 
   configDAC();
