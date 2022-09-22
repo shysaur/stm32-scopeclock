@@ -60,7 +60,7 @@ void updateDialFace(void)
   const char *labels[] = {
     "12", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"
   };
-  t_plot plot;
+  t_plotRender plot;
   plot.i = 0;
   plot.xyBuf = dac_buffer;
   plot.xyBufSz = DAC_BUFFER_SZ;
@@ -80,15 +80,15 @@ void updateDialFace(void)
     }
     x1 = x;
     y1 = y;
-    plotLine(&plot, x0, y0, x1, y1, 1);
+    plot_renderLine(&plot, x0, y0, x1, y1, 1);
 
     if (i % 5 == 0) {
       t_fixp height = FIX_1 * 2/16;
       x0 = x * 12 / 16;
       y0 = y * 12 / 16 - height/2;
-      t_fixp width = sizeString(height, labels[i/5]);
+      t_fixp width = plot_sizeString(height, labels[i/5]);
       x0 -= width / 2;
-      plotString(&plot, x0, y0, height, labels[i/5]);
+      plot_renderString(&plot, x0, y0, height, labels[i/5]);
     }
   }
   dial_face_end = plot.i;
@@ -97,22 +97,22 @@ void updateDialFace(void)
 void updateClockDisp(void)
 {
   t_binang angle;
-  t_plot plot;
+  t_plotRender plot;
   plot.i = dial_face_end;
   plot.xyBuf = dac_buffer;
   plot.xyBufSz = DAC_BUFFER_SZ;
 
   uint32_t h = ms_counter % (12 * 60 * 60 * 1000) / (12 * 60 * 60);
   angle = BINANG_90 - TO_BINANG(h, 1000);
-  plotLine(&plot, 0, 0, coss(angle) * 6/16, sins(angle) * 6/16, 1);
+  plot_renderLine(&plot, 0, 0, coss(angle) * 6/16, sins(angle) * 6/16, 1);
 
   uint32_t m = ms_counter % (60 * 60 * 1000) / (60 * 60);
   angle = BINANG_90 - TO_BINANG(m, 1000);
-  plotLine(&plot, 0, 0, coss(angle) * 10/16, sins(angle) * 10/16, 1);
+  plot_renderLine(&plot, 0, 0, coss(angle) * 10/16, sins(angle) * 10/16, 1);
 
   uint32_t s = ms_counter % (60 * 1000) / 60;
   angle = BINANG_90 - TO_BINANG(s, 1000);
-  plotLine(&plot, 0, 0, coss(angle) * 11/16, sins(angle) * 11/16, 1);
+  plot_renderLine(&plot, 0, 0, coss(angle) * 11/16, sins(angle) * 11/16, 1);
 
   for (; plot.i < plot.xyBufSz; plot.i++) {
     dac_buffer[plot.i] = 0;
