@@ -256,6 +256,7 @@ int plot_render(t_plot *ctx, t_plotRender *dest)
     uintptr_t ptr;
     t_dac newX = ctx->curX;
     t_dac newY = ctx->curY;
+    const char *str;
     switch (cmd) {
       case DRAWCMD_MOVETO:
       case DRAWCMD_LINETO:
@@ -280,7 +281,9 @@ int plot_render(t_plot *ctx, t_plotRender *dest)
         tmp  =  ctx->cmdBuf[ctx->cmdBufReadI++];
         tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 8;
         tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 16;
-        ctx->cmdBufReadI += _plot_renderString(dest, ctx->curX, ctx->curY, tmp, (char*)(ctx->cmdBuf+ctx->cmdBufReadI)) + 1;
+        str = (const char *)(ctx->cmdBuf + ctx->cmdBufReadI);
+        ctx->cmdBufReadI += _plot_renderString(dest, ctx->curX, ctx->curY, tmp, str) + 1;
+        newX += plot_sizeString(tmp, str) / (FIX_1 / AMP_X);
         break;
       case DRAWCMD_INVOKE:
         ptr = 0;
@@ -293,8 +296,10 @@ int plot_render(t_plot *ctx, t_plotRender *dest)
         ctx->next = NULL;
     }
     if (dest->i == dest->xyBufSz) {
-      dest->i = oldPlotI;
-      ctx->cmdBufReadI = oldCmdBufReadI;
+      if (oldPlotI > 0) {
+        dest->i = oldPlotI;
+        ctx->cmdBufReadI = oldCmdBufReadI;
+      }
       return 0;
     }
     ctx->curX = newX;
