@@ -59,7 +59,7 @@ void configDAC(void)
 }
 
 
-void updateDisp(void)
+void updateDisp(uint32_t ms_timestamp)
 {
   t_binang angle;
 
@@ -68,20 +68,41 @@ void updateDisp(void)
   initDialPlot();
   plot_invoke(&plot, &dial_plot);
 
-  uint32_t h = ms_counter % (12 * 60 * 60 * 1000) / (12 * 60 * 60);
+  uint32_t h = ms_timestamp % (12 * 60 * 60 * 1000) / (12 * 60 * 60);
   angle = BINANG_90 - TO_BINANG(h, 1000);
   plot_moveTo(&plot, 0, 0);
   plot_lineTo(&plot, coss(angle) * 6/16, sins(angle) * 6/16, 1);
 
-  uint32_t m = ms_counter % (60 * 60 * 1000) / (60 * 60);
+  uint32_t m = ms_timestamp % (60 * 60 * 1000) / (60 * 60);
   angle = BINANG_90 - TO_BINANG(m, 1000);
   plot_moveTo(&plot, 0, 0);
   plot_lineTo(&plot, coss(angle) * 10/16, sins(angle) * 10/16, 1);
 
-  uint32_t s = ms_counter % (60 * 1000) / 60;
+  uint32_t s = ms_timestamp % (60 * 1000) / 60;
   angle = BINANG_90 - TO_BINANG(s, 1000);
   plot_moveTo(&plot, 0, 0);
   plot_lineTo(&plot, coss(angle) * 11/16, sins(angle) * 11/16, 1);
+
+  static const t_fixp time_size = FIX_1/7;
+  t_fixp width = plot_sizeString(time_size, "00:00:00");
+  plot_moveTo(&plot, -width/2, -FIX_1*1/3);
+  char str[4];
+  str[2] = ':';
+  str[3] = '\0';
+  int tt;
+  tt = (ms_timestamp / (1000 * 60 * 60)) % 24;
+  str[1] = tt % 10 + '0';
+  str[0] = tt / 10 + '0';
+  plot_putString(&plot, time_size, str);
+  tt = (ms_timestamp / (1000 * 60)) % 60;
+  str[1] = tt % 10 + '0';
+  str[0] = tt / 10 + '0';
+  plot_putString(&plot, time_size, str);
+  tt = (ms_timestamp / 1000) % 60;
+  str[2] = '\0';
+  str[1] = tt % 10 + '0';
+  str[0] = tt / 10 + '0';
+  plot_putString(&plot, time_size, str);
 }
 
 void updateRender(void)
@@ -90,7 +111,7 @@ void updateRender(void)
   plot_renderInit(&render, dac_buffer[dac_buffer_i], DAC_BUFFER_SZ);
   int finished = plot_render(&plot, &render);
   if (finished) {
-    updateDisp();
+    updateDisp(ms_counter);
     finished = plot_render(&plot, &render);
   }
   dac_buffer_fill[dac_buffer_i] = render.i;
@@ -138,7 +159,7 @@ void main(void)
   configPLLClock();
   SysTick_Config(24 * 1000);
 
-  updateDisp();
+  updateDisp(0);
   updateRender();
   continueTransfer();
 
