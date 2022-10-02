@@ -10,13 +10,13 @@
 
 int main(int argc, char *argv[])
 {
-  uint32_t buf[800];
+  uint32_t buf[256];
   uint8_t cmdBuf1[1024];
   uint8_t cmdBuf2[512];
   t_plotRender plot;
   t_plot ctxDial, ctx;
 
-  plot_renderInit(&plot, buf, 800);
+  plot_renderInit(&plot, buf, 256);
   plot_init(&ctx, cmdBuf2, 512);
   plot_init(&ctxDial, cmdBuf1, 1024);
 
@@ -76,6 +76,8 @@ int main(int argc, char *argv[])
   //plot_renderLine(&plot, 0, 0, sins(BINANG_90) * 6/16, coss(BINANG_90) * 6/16, 1);
   //plot_renderLine(&plot, 0, 0, sins(BINANG_180 + BINANG_90/2) * 11/16, coss(BINANG_180 + BINANG_90/2) * 11/16, 1);
 
+  plot_moveTo(&ctx, -FIX_1/2, -FIX_1/2);
+  plot_putString(&ctx, FIX_1/8, "Scope Clock!");
 /*
   plot_renderString(&plot, -5000, 5000, 300, "123 Hello yg!");
   plot_renderCircle(&plot, -1000, -10000, 10000);

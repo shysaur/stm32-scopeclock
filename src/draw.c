@@ -7,8 +7,10 @@
 #define DRAWCMD_LINETO          0x01
 #define DRAWCMD_LINETO_LASTDOT  0x02
 #define DRAWCMD_CIRCLE          0x03
-#define DRAWCMD_STRING          0x04
+#define DRAWCMD_SET_STR_SCALE   0x04
 #define DRAWCMD_INVOKE          0x05
+#define DRAWCMD_CHAR_BEGIN      0x20
+#define DRAWCMD_CHAR_END        0xFF
 
 
 void plot_renderInit(t_plotRender *plot, uint32_t *xyBuf, unsigned xyBufSz)
@@ -102,38 +104,43 @@ void plot_renderLine(t_plotRender *plot, t_fixp x0, t_fixp y0, t_fixp x1, t_fixp
 }
 
 
-static unsigned _plot_renderString(t_plotRender *plot, t_dac x0, t_dac y0, t_fixp scale, const char *str)
+static t_dac _plot_renderChar(t_plotRender *plot, t_dac x0, t_dac y0, t_fixp scale, char c)
 {
   scale /= GLYPH_MAX_HEIGHT;
+  if (c < 0)
+    return 0;
+  const uint8_t *cmds = glyph_vectors[c];
+  if (!cmds)
+    return 0;
+  t_dac x = x0, y = y0, x1, y1;
+  for (int stop = 0; stop == 0;) {
+    uint8_t cmd = *cmds++;
+    switch (cmd) {
+      case 'M':
+        x = (scale * (t_fixp)((int8_t)(*cmds++))) / (FIX_1 / AMP_X) + x0;
+        y = (scale * (t_fixp)((int8_t)(*cmds++))) / (FIX_1 / AMP_Y) + y0;
+        break;
+      case 'L':
+        x1 = (scale * (t_fixp)((int8_t)(*cmds++))) / (FIX_1 / AMP_X) + x0;
+        y1 = (scale * (t_fixp)((int8_t)(*cmds++))) / (FIX_1 / AMP_Y) + y0;
+        _plot_renderLine(plot, x, y, x1, y1, 0);
+        x = x1;
+        y = y1;
+        break;
+      case 'E':
+        stop = 1;
+        break;
+    }
+  }
+  return x0 + (scale * (t_fixp)glyph_width[c]) / (FIX_1 / AMP_X);
+}
+
+static unsigned _plot_renderString(t_plotRender *plot, t_dac x0, t_dac y0, t_fixp scale, const char *str)
+{
   unsigned i;
   for (i = 0; str[i] != '\0'; i++) {
     char c = str[i];
-    if (c < 0)
-      continue;
-    const uint8_t *cmds = glyph_vectors[c];
-    if (!cmds)
-      continue;
-    t_dac x = x0, y = y0, x1, y1;
-    for (int stop = 0; stop == 0;) {
-      uint8_t cmd = *cmds++;
-      switch (cmd) {
-        case 'M':
-          x = (scale * (t_fixp)((int8_t)(*cmds++))) / (FIX_1 / AMP_X) + x0;
-          y = (scale * (t_fixp)((int8_t)(*cmds++))) / (FIX_1 / AMP_Y) + y0;
-          break;
-        case 'L':
-          x1 = (scale * (t_fixp)((int8_t)(*cmds++))) / (FIX_1 / AMP_X) + x0;
-          y1 = (scale * (t_fixp)((int8_t)(*cmds++))) / (FIX_1 / AMP_Y) + y0;
-          _plot_renderLine(plot, x, y, x1, y1, 0);
-          x = x1;
-          y = y1;
-          break;
-        case 'E':
-          stop = 1;
-          break;
-      }
-    }
-    x0 += (scale * (t_fixp)glyph_width[c]) / (FIX_1 / AMP_X);
+    x0 = _plot_renderChar(plot, x0, y0, scale, c);
   }
   return i;
 }
@@ -210,16 +217,15 @@ int plot_putString(t_plot *ctx, t_fixp scale, const char *str)
   unsigned i = ctx->cmdBufWriteI;
   if (i+4 >= ctx->cmdBufSz)
     return 0;
-  ctx->cmdBuf[i++] = DRAWCMD_STRING;
+  ctx->cmdBuf[i++] = DRAWCMD_SET_STR_SCALE;
   ctx->cmdBuf[i++] = scale & 0xFF;
   ctx->cmdBuf[i++] = (scale >> 8) & 0xFF;
   ctx->cmdBuf[i++] = (scale >> 16) & 0xFF;
   while (*str != '\0' && i < ctx->cmdBufSz) {
     ctx->cmdBuf[i++] = *str++;
   }
-  if (i+1 >= ctx->cmdBufSz)
+  if (i >= ctx->cmdBufSz)
     return 0;
-  ctx->cmdBuf[i++] = '\0';
   ctx->cmdBufWriteI = i;
   return 1;
 }
@@ -261,44 +267,45 @@ int plot_render(t_plot *ctx, t_plotRender *dest)
     uint8_t cmd = ctx->cmdBuf[ctx->cmdBufReadI++];
     uint32_t tmp;
     uintptr_t ptr;
-    const char *str;
-    switch (cmd) {
-      case DRAWCMD_MOVETO:
-      case DRAWCMD_LINETO:
-      case DRAWCMD_LINETO_LASTDOT:
-        tmp  = ctx->cmdBuf[ctx->cmdBufReadI++];
-        tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 8;
-        tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 16;
-        newX = tmp & 0xFFF;
-        newY = (tmp >> 12) & 0xFFF;
-        if (cmd == DRAWCMD_LINETO)
-          _plot_renderLine(dest, ctx->curX, ctx->curY, newX, newY, 0);
-        else if (cmd == DRAWCMD_LINETO_LASTDOT)
-          _plot_renderLine(dest, ctx->curX, ctx->curY, newX, newY, 1);
-        break;
-      case DRAWCMD_CIRCLE:
-        tmp  = ctx->cmdBuf[ctx->cmdBufReadI++];
-        tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 8;
-        tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 16;
-        _plot_renderCircle(dest, ctx->curX, ctx->curY, tmp);
-        break;
-      case DRAWCMD_STRING:
-        tmp  =  ctx->cmdBuf[ctx->cmdBufReadI++];
-        tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 8;
-        tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 16;
-        str = (const char *)(ctx->cmdBuf + ctx->cmdBufReadI);
-        ctx->cmdBufReadI += _plot_renderString(dest, ctx->curX, ctx->curY, tmp, str) + 1;
-        newX += plot_sizeString(tmp, str) / (FIX_1 / AMP_X);
-        break;
-      case DRAWCMD_INVOKE:
-        ptr = 0;
-        for (int i=0; i<sizeof(uintptr_t); i++)
-          ptr |= (uintptr_t)(ctx->cmdBuf[ctx->cmdBufReadI++]) << ((uintptr_t)(i*8));
-        ctx->next = (t_plot *)((void *)ptr);
-        tmp = plot_render(ctx->next, dest);
-        if (!tmp)
-          return 0;
-        ctx->next = NULL;
+    if (DRAWCMD_CHAR_BEGIN <= cmd && cmd <= DRAWCMD_CHAR_END) {
+      newX = _plot_renderChar(dest, ctx->curX, ctx->curY, ctx->stringScale, cmd);
+    } else {
+      switch (cmd) {
+        case DRAWCMD_MOVETO:
+        case DRAWCMD_LINETO:
+        case DRAWCMD_LINETO_LASTDOT:
+          tmp  = ctx->cmdBuf[ctx->cmdBufReadI++];
+          tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 8;
+          tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 16;
+          newX = tmp & 0xFFF;
+          newY = (tmp >> 12) & 0xFFF;
+          if (cmd == DRAWCMD_LINETO)
+            _plot_renderLine(dest, ctx->curX, ctx->curY, newX, newY, 0);
+          else if (cmd == DRAWCMD_LINETO_LASTDOT)
+            _plot_renderLine(dest, ctx->curX, ctx->curY, newX, newY, 1);
+          break;
+        case DRAWCMD_CIRCLE:
+          tmp  = ctx->cmdBuf[ctx->cmdBufReadI++];
+          tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 8;
+          tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 16;
+          _plot_renderCircle(dest, ctx->curX, ctx->curY, tmp);
+          break;
+        case DRAWCMD_SET_STR_SCALE:
+          tmp  = ctx->cmdBuf[ctx->cmdBufReadI++];
+          tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 8;
+          tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 16;
+          ctx->stringScale = tmp;
+          break;
+        case DRAWCMD_INVOKE:
+          ptr = 0;
+          for (int i=0; i<sizeof(uintptr_t); i++)
+            ptr |= (uintptr_t)(ctx->cmdBuf[ctx->cmdBufReadI++]) << ((uintptr_t)(i*8));
+          ctx->next = (t_plot *)((void *)ptr);
+          tmp = plot_render(ctx->next, dest);
+          if (!tmp)
+            return 0;
+          ctx->next = NULL;
+      }
     }
   }
 

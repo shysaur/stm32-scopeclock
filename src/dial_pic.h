@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include "draw.h"
 
-#define DIAL_FACE_CMDBUF_SIZE 603
+#define DIAL_FACE_CMDBUF_SIZE 591
 extern const uint8_t dial_face_cmdbuf[DIAL_FACE_CMDBUF_SIZE];
 
 extern t_plot dial_plot;

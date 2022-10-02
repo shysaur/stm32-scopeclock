@@ -27,6 +27,7 @@ typedef struct t_plot {
   uint8_t *cmdBuf;
   unsigned cmdBufSz;
   t_dac curX, curY;
+  t_fixp stringScale;
   struct t_plot *next;
 } t_plot;
 
