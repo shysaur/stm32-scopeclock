@@ -90,12 +90,13 @@ void updateDisp(void)
 void updateRender(void)
 {
   t_plotRender render;
-  plot_renderInit(&render, dac_buffer[dac_buffer_i], DAC_BUFFER_SZ-1);
-  int status = plot_render(&plot, &render);
-  dac_buffer[dac_buffer_i][render.i] = 0;
-  dac_buffer_fill[dac_buffer_i] = render.i+1;
-  if (status)
+  plot_renderInit(&render, dac_buffer[dac_buffer_i], DAC_BUFFER_SZ);
+  int finished = plot_render(&plot, &render);
+  if (finished) {
     updateDisp();
+    finished = plot_render(&plot, &render);
+  }
+  dac_buffer_fill[dac_buffer_i] = render.i;
 }
 
 void continueTransfer(void)
