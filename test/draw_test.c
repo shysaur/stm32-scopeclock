@@ -10,13 +10,14 @@
 
 int main(int argc, char *argv[])
 {
-  uint32_t buf[256];
+  #define RENDER_BUF_SIZE 800
+  uint32_t buf[RENDER_BUF_SIZE];
   uint8_t cmdBuf1[1024];
   uint8_t cmdBuf2[512];
   t_plotRender plot;
   t_plot ctxDial, ctx;
 
-  plot_renderInit(&plot, buf, 256);
+  plot_renderInit(&plot, buf, RENDER_BUF_SIZE);
   plot_init(&ctx, cmdBuf2, 512);
   plot_init(&ctxDial, cmdBuf1, 1024);
 
@@ -87,6 +88,10 @@ int main(int argc, char *argv[])
   do {
     stop = plot_render(&ctx, &plot);
     fprintf(stderr, "used %d/%d, stop=%d\n", plot.i, plot.xyBufSz, stop);
+    if (plot.i == 0) {
+      printf("error: plotted zero!\n");
+      return 1;
+    }
     for (int i=0; i<plot.i; i++) {
       printf("%d\t%d\n", GET_X(plot.xyBuf[i]), GET_Y(plot.xyBuf[i]));
     }
