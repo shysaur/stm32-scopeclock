@@ -5,7 +5,8 @@ import turtle
 import math
 
 GLYPH_ASCENDER = 21
-TURTLE = False
+TURTLE = True
+DEBUG_TURTLE = False
 SCALE = 100/GLYPH_ASCENDER
 FONT = 'futural'
 
@@ -39,11 +40,13 @@ class Plotter:
         for t in range(math.ceil(self.t), math.floor(end_t), 1):
             px = (t - self.t) / dist * dx + self.x
             py = (t - self.t) / dist * dy + self.y
-            if TURTLE:
+            if TURTLE and DEBUG_TURTLE:
                 turtle.goto(px, py)
             self.points += [(px, py)]
         self.t = end_t
         self.x, self.y = x, y
+        if TURTLE and not DEBUG_TURTLE:
+            turtle.goto(x, y)
     
     def end(self):
         print('static const uint8_t ' + label_for_vectors(self.c) + '[] = {')
@@ -63,7 +66,7 @@ widths = [0 for i in range(0, 128)]
 if TURTLE:
     turtle.mode('logo')
     turtle.speed(10)
-    turtle.setup(SCALE*GLYPH_ASCENDER*3/2, SCALE*GLYPH_ASCENDER*3/2, 0, 0)
+    turtle.setup(SCALE*GLYPH_ASCENDER*6/2, SCALE*GLYPH_ASCENDER*6/2)
 
 font = HersheyFonts()
 font.load_default_font(FONT)
