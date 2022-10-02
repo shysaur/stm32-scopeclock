@@ -33,6 +33,10 @@ OUTPUT_BIN = $(OUTPUT).bin
 OUTPUT_MAP = $(OUTPUT).map
 
 TEST_SRC = $(wildcard $(TEST_DIR)/*.c)
+TEST_SRC_DEPS = $(SRC_DIR)/draw.c \
+  $(SRC_DIR)/font_futural.c \
+  $(SRC_DIR)/font_futuram.c \
+  $(SRC_DIR)/math.c
 TEST_OUT = $(TEST_SRC:.c=)
 TEST_DEPS = $(TEST_SRC:.c=.d)
 
@@ -75,7 +79,7 @@ tests: $(TEST_OUT)
 -include $(TEST_DEPS)
 
 $(TEST_DIR)/%: $(TEST_DIR)/%.c
-	$(CC) -g -MMD -DTEST $< -o $@ -I $(SRC_DIR)
+	$(CC) -g -MMD -DTEST $< $(TEST_SRC_DEPS) -o $@ -I $(SRC_DIR)
 
 .PHONY: clean
 clean:

@@ -1,8 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../src/math.c"
-#include "../src/font_futural.c"
-#include "../src/draw.c"
+#include "../src/math.h"
+#include "../src/draw.h"
 
 
 int main(int argc, char *argv[])
