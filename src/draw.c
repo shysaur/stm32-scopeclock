@@ -45,61 +45,20 @@ void plot_renderCircle(t_plotRender *plot, t_fixp x0, t_fixp y0, t_fixp radius)
 
 static void _plot_renderLine(t_plotRender *plot, t_dac px, t_dac py, t_dac px1, t_dac py1, int lastDot)
 {
-  if (px >= px1) {
-    /* flip west quadrants to east */
-    t_dac tmp = px;
-    px = px1;
-    px1 = tmp;
-    tmp = py;
-    py = py1;
-    py1 = tmp;
-  }
-
-  int32_t dx = px1 - px;
-  int32_t dy = py1 - py;
-  int32_t yinc = 1;
-  if (dy < 0) {
-    /* slope > 0 */
-    dy = -dy;
-    yinc = -1;
-  }
-
-  if (dx > dy) {
-    /* slope > 1 */
-    int32_t incAccum = 0;
-    int32_t emitAccum = AMP_X;
-    for (int32_t i=0; i<dx && plot->i < plot->xyBufSz; i++) {
-      if (emitAccum >= AMP_X || (i == (dx-1) && lastDot)) {
-        plot->xyBuf[plot->i++] = (uint32_t)px | ((uint32_t)py << 16);
-        emitAccum -= AMP_X;
-      }
-      px++;
-      emitAccum += DEFL_RATE;
-      incAccum += dy;
-      if (incAccum >= dx) {
-        py += yinc;
-        emitAccum += (DEFL_RATE * 4142 / 10000);
-        incAccum -= dx;
-      }
-    }
-  } else {
-    /* slope <= 1 */
-    int32_t incAccum = 0;
-    int32_t emitAccum = AMP_Y;
-    for (int32_t i=0; i<dy && plot->i < plot->xyBufSz; i++) {
-      if (emitAccum >= AMP_Y || (i == (dy-1) && lastDot)) {
-        plot->xyBuf[plot->i++] = (uint32_t)px | ((uint32_t)py << 16);
-        emitAccum -= AMP_Y;
-      }
-      py += yinc;
-      emitAccum += DEFL_RATE;
-      incAccum += dx;
-      if (incAccum >= dy) {
-        px++;
-        emitAccum += (DEFL_RATE * 4142 / 10000);
-        incAccum -= dy;
-      }
-    }
+  t_dac dx = px1 - px;
+  t_dac dy = py1 - py;
+  t_dac approx_len = MAX(ABS(dx), ABS(dy)) + (MIN(ABS(dx), ABS(dy)) * 4142 / 10000);
+  int n_steps = approx_len * DEFL_RATE / AMP_X;
+  t_fixp stepx = dx * FIX_1 / n_steps;
+  t_fixp stepy = dy * FIX_1 / n_steps;
+  t_fixp x = px * FIX_1;
+  t_fixp y = py * FIX_1;
+  for (int i=0; i<n_steps && plot->i < plot->xyBufSz; i++) {
+    x += stepx;
+    y += stepy;
+    t_dac xx = x / FIX_1;
+    t_dac yy = y / FIX_1;
+    plot->xyBuf[plot->i++] = (uint32_t)xx | ((uint32_t)yy << 16);
   }
 }
 

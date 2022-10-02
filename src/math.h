@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+#define MIN(x, y) ((x) < (y) ? (x) : (y))
+#define MAX(x, y) ((x) > (y) ? (x) : (y))
+#define ABS(x) ((x) < 0 ? -(x) : (x))
+
 typedef uint32_t t_binang;
 #define BINANG_0      (t_binang)(0)
 #define BINANG_90     (t_binang)(0x40000000)
