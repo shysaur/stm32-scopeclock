@@ -23,7 +23,7 @@ void configPLLClock(void)
 }
 
 
-void updateClock(t_plot *plot)
+void plotClock(t_plot *plot)
 {
   t_binang angle;
   uint32_t ms_timestamp = ms_counter;
@@ -69,6 +69,22 @@ void updateClock(t_plot *plot)
 }
 
 
+void plotCalibBox(t_plot *plot)
+{
+  plot_moveTo(plot, -FIX_1, FIX_1);
+  plot_lineTo(plot, FIX_1, FIX_1, true);
+  plot_lineTo(plot, FIX_1, -FIX_1, true);
+  plot_lineTo(plot, -FIX_1, -FIX_1, true);
+  plot_lineTo(plot, -FIX_1, FIX_1, true);
+  plot_lineTo(plot, FIX_1, -FIX_1, true);
+  plot_moveTo(plot, FIX_1, FIX_1);
+  plot_lineTo(plot, -FIX_1, -FIX_1, true);
+
+  if (ms_counter >= 5000)
+    rl_setPlotUpdateFunc(plotClock);
+}
+
+
 void SysTick_Handler(void)
 {
   ms_counter++;
@@ -92,7 +108,7 @@ void main(void)
     GPIO_CRH_CNF8_Msk | GPIO_CRH_MODE8_Msk |
     GPIO_CRH_CNF9_Msk | GPIO_CRH_MODE9_Msk);
 
-  rl_init(updateClock);
+  rl_init(plotCalibBox);
   
   for (;;) {
     //__WFI();
