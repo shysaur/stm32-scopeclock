@@ -108,10 +108,10 @@ static t_dac _plot_renderChar(t_plotRender *plot, t_dac x0, t_dac y0, t_fixp sca
 {
   scale /= GLYPH_MAX_HEIGHT;
   if (c < 0)
-    return 0;
+    return x0;
   const uint8_t *cmds = glyph_vectors[c];
   if (!cmds)
-    return 0;
+    return x0;
   t_dac x = x0, y = y0, x1, y1;
   for (int stop = 0; stop == 0;) {
     uint8_t cmd = *cmds++;
