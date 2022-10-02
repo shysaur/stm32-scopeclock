@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "dial_pic.h"
 #include <stdint.h>
+#include <stdbool.h>
 
 #define DAC_BUFFER_SZ 900
 uint32_t dac_buffer[2][DAC_BUFFER_SZ];
@@ -14,6 +15,7 @@ uint32_t dac_buffer_fill[2];
 uint8_t plot_buffer[PLOT_BUFFER_SZ];
 t_plot plot;
 
+volatile bool dac_finished_flag;
 volatile uint32_t ms_counter = 0;
 
 
@@ -32,11 +34,7 @@ void configPLLClock(void)
 
 void configDAC(void)
 {
-  /* Turn on DAC, TIM6, DMA1 */
-  SET_BITS(RCC->APB1ENR,
-      RCC_APB1ENR_DACEN | RCC_APB1ENR_TIM6EN,
-      RCC_APB1ENR_DACEN_Msk | RCC_APB1ENR_TIM6EN_Msk);
-  SET_BITS(RCC->AHBENR, RCC_AHBENR_DMA1EN, RCC_AHBENR_DMA1EN_Msk);
+  dac_finished_flag = false;
 
   /* Configure DAC */
   DAC1->SR = DAC_SR_DMAUDR1 | DAC_SR_DMAUDR2;
@@ -46,13 +44,12 @@ void configDAC(void)
   
   /* Configure DMA1 channel 3 */
   SET_BITS(DMA1_Channel3->CCR, 0, DMA_CCR_EN_Msk);
-  SET_BITS(DMA1->IFCR, DMA_IFCR_CGIF3, DMA_IFCR_CGIF3_Msk);
   uint32_t size = dac_buffer_fill[dac_buffer_i];
   DMA1_Channel3->CNDTR = size;
   DMA1_Channel3->CPAR = (uint32_t)((void *)&(DAC1->DHR12RD));
   DMA1_Channel3->CMAR = (uint32_t)((void *)dac_buffer[dac_buffer_i]);
   DMA1_Channel3->CCR = (2 << DMA_CCR_MSIZE_Pos) | (2 << DMA_CCR_PSIZE_Pos) | 
-      DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TCIE | DMA_CCR_EN;
+      DMA_CCR_MINC | DMA_CCR_DIR | DMA_CCR_TEIE | DMA_CCR_TCIE | DMA_CCR_EN;
   
   /* Configure TIM6 */
   TIM6->CR2 = 2 << TIM_CR2_MMS_Pos;
@@ -108,8 +105,8 @@ void continueTransfer(void)
 
 void DMA1_Channel3_IRQHandler(void)
 {
-  SET_BITS(GPIOC->ODR, (dac_buffer_i % 2) << 9, 1 << 9);
-  continueTransfer();
+  dac_finished_flag = true;
+  SET_BITS(DMA1->IFCR, DMA_IFCR_CGIF3, DMA_IFCR_CGIF3_Msk);
 }
 
 
@@ -118,36 +115,39 @@ void SysTick_Handler(void)
   ms_counter++;
   if (ms_counter % 500 == 0) {
     uint32_t n = (ms_counter / 500) & 1;
-    SET_BITS(GPIOC->ODR, n << 8, 1 << 8);
-    //SET_BITS(GPIOC->ODR, (n ^ 1) << 9, 1 << 9);
+    SET_BITS(GPIOC->ODR, n << 9, 1 << 9);
   }
 }
 
 
 void main(void)
 {
-  /* Turn on both leds on power on */
+  /* Configure LED GPIOs */
   SET_BITS(RCC->APB2ENR, RCC_APB2ENR_IOPCEN, RCC_APB2ENR_IOPCEN_Msk);
   SET_BITS(GPIOC->CRH, 
     (0 << GPIO_CRH_CNF8_Pos) | (3 << GPIO_CRH_MODE8_Pos) |
     (0 << GPIO_CRH_CNF9_Pos) | (3 << GPIO_CRH_MODE9_Pos), 
     GPIO_CRH_CNF8_Msk | GPIO_CRH_MODE8_Msk |
     GPIO_CRH_CNF9_Msk | GPIO_CRH_MODE9_Msk);
-  SET_BITS(GPIOC->ODR, 1 << 8, 1 << 8);
-  //SET_BITS(GPIOC->ODR, 1 << 9, 1 << 9);
+  /* Turn on DAC, TIM6, DMA1 */
+  SET_BITS(RCC->APB1ENR,
+      RCC_APB1ENR_DACEN | RCC_APB1ENR_TIM6EN,
+      RCC_APB1ENR_DACEN_Msk | RCC_APB1ENR_TIM6EN_Msk);
+  SET_BITS(RCC->AHBENR, RCC_AHBENR_DMA1EN, RCC_AHBENR_DMA1EN_Msk);
 
   configPLLClock();
   SysTick_Config(24 * 1000);
 
   updateDisp();
   updateRender();
-  //for (int i=0; i<DAC_BUFFER_SZ; i++)
-  //  dac_buffer[0][i] = i < DAC_BUFFER_SZ / 2 ? 4095 : 0;
   continueTransfer();
 
   __NVIC_EnableIRQ(13);
   
   for (;;) {
     //__WFI();
+    if (dac_finished_flag) {
+      continueTransfer();
+    }
   }
 }
