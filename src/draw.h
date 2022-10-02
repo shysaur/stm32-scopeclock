@@ -13,7 +13,7 @@ typedef int32_t t_dac;
 #define FIX_TO_DAC(x) ((t_dac)((x) / (FIX_1 / AMP_X) + OFF_X))
 
 /* Number of samples that shall be used to span a deflection of AMP_X */
-#define DEFL_SPEED 100
+#define DEFL_RATE 100
 
 typedef struct {
   unsigned i;

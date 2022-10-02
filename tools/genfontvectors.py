@@ -52,7 +52,7 @@ for char in all_chars:
     widths[ord(char)] = left + glyph.char_box[1][0]
     end_char(char)
 
-print('const uint8_t *glyph_vectors[128] = {')
+print('const uint8_t * const glyph_vectors[128] = {')
 vecs = []
 for i in range(0, 128):
     if chr(i) in all_chars:

@@ -24,7 +24,7 @@ void plot_renderInit(t_plotRender *plot, uint32_t *xyBuf, unsigned xyBufSz)
 static void _plot_renderCircle(t_plotRender *plot, t_dac x0, t_dac y0, t_fixp radius)
 {
   t_fixp circ = 2 * FIX_MUL(FIX_PI, radius);
-  unsigned numSa = (DEFL_SPEED * circ) / FIX_1;
+  unsigned numSa = (DEFL_RATE * circ) / FIX_1;
   for (unsigned i=0; i<numSa && plot->i < plot->xyBufSz; i++, plot->i++) {
     t_fixp x = FIX_MUL(sins(TO_BINANG(i, numSa)), radius);
     t_fixp y = FIX_MUL(coss(TO_BINANG(i, numSa)), radius);
@@ -69,11 +69,11 @@ static void _plot_renderLine(t_plotRender *plot, t_dac px, t_dac py, t_dac px1, 
         emitAccum -= AMP_X;
       }
       px++;
-      emitAccum += DEFL_SPEED;
+      emitAccum += DEFL_RATE;
       incAccum += dy;
       if (incAccum >= dx) {
         py += yinc;
-        emitAccum += (DEFL_SPEED * 4142 / 10000);
+        emitAccum += (DEFL_RATE * 4142 / 10000);
         incAccum -= dx;
       }
     }
@@ -87,11 +87,11 @@ static void _plot_renderLine(t_plotRender *plot, t_dac px, t_dac py, t_dac px1, 
         emitAccum -= AMP_Y;
       }
       py += yinc;
-      emitAccum += DEFL_SPEED;
+      emitAccum += DEFL_RATE;
       incAccum += dx;
       if (incAccum >= dy) {
         px++;
-        emitAccum += (DEFL_SPEED * 4142 / 10000);
+        emitAccum += (DEFL_RATE * 4142 / 10000);
         incAccum -= dy;
       }
     }
@@ -106,33 +106,33 @@ void plot_renderLine(t_plotRender *plot, t_fixp x0, t_fixp y0, t_fixp x1, t_fixp
 
 static t_dac _plot_renderChar(t_plotRender *plot, t_dac x0, t_dac y0, t_fixp scale, char c)
 {
-  scale /= GLYPH_MAX_HEIGHT;
   if (c < 0)
     return x0;
-  const uint8_t *cmds = glyph_vectors[c];
-  if (!cmds)
+  
+  const uint8_t *points = futural_glyph_vectors[c];
+  if (!points)
     return x0;
-  t_dac x = x0, y = y0, x1, y1;
-  for (int stop = 0; stop == 0;) {
-    uint8_t cmd = *cmds++;
-    switch (cmd) {
-      case 'M':
-        x = (scale * (t_fixp)((int8_t)(*cmds++))) / (FIX_1 / AMP_X) + x0;
-        y = (scale * (t_fixp)((int8_t)(*cmds++))) / (FIX_1 / AMP_Y) + y0;
-        break;
-      case 'L':
-        x1 = (scale * (t_fixp)((int8_t)(*cmds++))) / (FIX_1 / AMP_X) + x0;
-        y1 = (scale * (t_fixp)((int8_t)(*cmds++))) / (FIX_1 / AMP_Y) + y0;
-        _plot_renderLine(plot, x, y, x1, y1, 0);
-        x = x1;
-        y = y1;
-        break;
-      case 'E':
-        stop = 1;
-        break;
-    }
+
+  unsigned data_len = *points++;
+  data_len += (*points++) << 8;
+  data_len *= 2;
+
+  t_dac height = scale * AMP_Y / FIX_1;
+  t_dac width = scale * AMP_X / FIX_1;
+  unsigned font_defl_rate = GLYPH_MAX_HEIGHT * FIX_1 / scale;
+  unsigned step = font_defl_rate * FIX_1 / DEFL_RATE;
+
+  for (t_fixp i=0; plot->i < plot->xyBufSz; i+=step) {
+    unsigned ii = i / FIX_1 * 2;
+    if (ii >= data_len)
+      break;
+    t_dac x = (int8_t)points[ii];
+    t_dac y = (int8_t)points[ii+1];
+    x = (x * width / GLYPH_MAX_HEIGHT) + x0;
+    y = (y * height / GLYPH_MAX_HEIGHT) + y0;
+    plot->xyBuf[plot->i++] = (uint32_t)x | ((uint32_t)y << 16);
   }
-  return x0 + (scale * (t_fixp)glyph_width[c]) / (FIX_1 / AMP_X);
+  return futural_glyph_width[c] * width / GLYPH_MAX_HEIGHT + x0;
 }
 
 static unsigned _plot_renderString(t_plotRender *plot, t_dac x0, t_dac y0, t_fixp scale, const char *str)
@@ -157,7 +157,7 @@ t_fixp plot_sizeString(t_fixp scale, const char *str)
   for (const char *pi = str; *pi != '\0'; pi++) {
     if (*pi < 0)
       continue;
-    res += scale * (t_fixp)glyph_width[*pi];
+    res += scale * (t_fixp)futural_glyph_width[*pi];
   }
   return res;
 }
