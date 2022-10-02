@@ -4,7 +4,7 @@ E_CC?=arm-none-eabi-gcc
 E_OBJCOPY?=arm-none-eabi-objcopy
 
 OUTPUT:=scopeclock
-DEBUG?=0
+DEBUG?=1
 OBJ_DIR = ./obj
 SRC_DIR = ./src
 TEST_DIR = ./test
@@ -22,7 +22,7 @@ CPUFLAGS := -mcpu=cortex-m3 -mthumb -DSTM32F100xB
 ifeq ($(DEBUG),0)
   CFLAGS += -Os
 else
-  CFLAGS += -g
+  CFLAGS += -g -DDEBUG
 endif
 CFLAGS += -ffreestanding -nostdlib $(CPUFLAGS) -I$(SRC_DIR)/hw
 ASMFLAGS += -ffreestanding -nostdlib $(CPUFLAGS)

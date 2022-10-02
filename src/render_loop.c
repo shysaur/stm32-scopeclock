@@ -18,11 +18,19 @@ t_plot_func *plot_update_func;
 volatile bool dac_finished_flag;
 
 extern volatile uint32_t ms_counter;
+uint32_t frame_time_ms = 0;
+uint32_t update_time_ms = 0;
+bool show_fps_disp = false;
 
 
 void rl_setPlotUpdateFunc(t_plot_func *plotUpdFunc)
 {
   plot_update_func = plotUpdFunc;
+}
+
+void rl_setEnableFPSDisplay(bool enable)
+{
+  show_fps_disp = enable;
 }
 
 
@@ -56,31 +64,45 @@ static void configDAC(void)
 static void updateFPSDisp(t_plot *plot)
 {
   char buffer[10];
-  static uint32_t ms_old = 0;
 
-  t_fixp fps = 1000 * FIX_1 / (ms_counter - ms_old);
-  ms_old = ms_counter;
-  char *p = buffer;
-  p += formatSignedInt(fps / FIX_1, 10, PLUS_NONE, false, 0, p);
-  *p++ = '.';
-  p += formatSignedInt((fps % FIX_1) * 100 / FIX_1, 10, PLUS_NONE, false, 2, p);
-  *p++ = '\0';
+  if (!show_fps_disp)
+    return;
+
   plot_selectFont(plot, PLOT_FONT_ID_FUTURAL, FIX_1 / 15);
+
+  t_fixp fps = 1000 * FIX_1 / (frame_time_ms);
+  formatFixedPoint(fps, 10, PLUS_NONE, false, 2, 0, buffer);
+  plot_moveTo(plot, -FIX_1, FIX_1*15/16);
+  plot_putString(plot, "FPS: ");
+  plot_putString(plot, buffer);
+
+  unsigned load = update_time_ms * 100 / frame_time_ms;
+  formatUnsignedInt(load, 10, false, 0, buffer);
+  plot_moveTo(plot, -FIX_1, FIX_1*13/16);
+  plot_putString(plot, "LOAD: ");
   plot_putString(plot, buffer);
 }
 
 static void updateRender(void)
 {
+  static uint32_t last_frame_start = 0;
+  uint32_t this_update_start = ms_counter;
+
   t_plotRender render;
   plot_renderInit(&render, dac_buffer[dac_buffer_i], DAC_BUFFER_SZ);
   int finished = plot_render(&plot, &render);
   if (finished) {
+    frame_time_ms = ms_counter - last_frame_start;
+    last_frame_start = ms_counter;
     plot_init(&plot, plot_buffer, PLOT_BUFFER_SZ);
     plot_update_func(&plot);
     updateFPSDisp(&plot);
+    update_time_ms = 0;
     finished = plot_render(&plot, &render);
   }
   dac_buffer_fill[dac_buffer_i] = render.i;
+
+  update_time_ms += ms_counter - this_update_start;
 }
 
 
@@ -101,6 +123,9 @@ void rl_init(t_plot_func *plotUpdFunc)
   SET_BITS(RCC->AHBENR, RCC_AHBENR_DMA1EN, RCC_AHBENR_DMA1EN_Msk);
 
   rl_setPlotUpdateFunc(plotUpdFunc);
+  #ifdef DEBUG
+  rl_setEnableFPSDisplay(true);
+  #endif
   plot_init(&plot, plot_buffer, PLOT_BUFFER_SZ);
   plotUpdFunc(&plot);
   updateRender();
