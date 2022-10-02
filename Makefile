@@ -68,7 +68,7 @@ tests: $(TEST_OUT)
 -include $(TEST_DEPS)
 
 $(TEST_DIR)/%: $(TEST_DIR)/%.c
-	$(CC) -g -MMD $< -o $@ -I $(SRC_DIR)
+	$(CC) -g -MMD -DTEST $< -o $@ -I $(SRC_DIR)
 
 .PHONY: clean
 clean:
