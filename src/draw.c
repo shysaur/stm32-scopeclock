@@ -246,9 +246,11 @@ int plot_invoke(t_plot *ctx, t_plot *other)
 int plot_render(t_plot *ctx, t_plotRender *dest)
 {
   if (ctx->cmdBufReadI == 0) {
+    /* New fresh render */
     ctx->curX = 0;
     ctx->curY = 0;
   } else if (ctx->next) {
+    /* Old render suspended in a subplot */
     int res = plot_render(ctx->next, dest);
     if (!res)
       return 0;
@@ -312,9 +314,15 @@ int plot_render(t_plot *ctx, t_plotRender *dest)
   int finished = 0;
   if (dest->i >= dest->xyBufSz) {
     if (oldPlotI > 0) {
-      // only one command is left and it overflowed
+      /* More than one command was completely plotted.
+       * Rollback to the last command successfully plotted
+       * in its entirety. */
       dest->i = oldPlotI;
       ctx->cmdBufReadI = oldCmdBufReadI;
+    } else {
+      /* Only one command was plotted and it was incomplete.
+       * This command will never fit into the buffer,
+       * do not rollback to avoid locking up here. */
     }
   }
   if (ctx->cmdBufReadI >= ctx->cmdBufWriteI) {
