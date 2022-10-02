@@ -1,5 +1,5 @@
+#include "font_futural.h"
 #include <stddef.h>
-#include "font.h"
 
 static const uint8_t char_20_vec[] = {
      0,   0,
@@ -2141,7 +2141,7 @@ static const uint8_t char_7a_vec[] = {
     63,   0,  64,   0,  65,   0
 };
 
-const uint8_t * const futural_glyph_vectors[128] = {
+static const uint8_t * const glyph_vectors[128] = {
           NULL,        NULL,        NULL,        NULL,
           NULL,        NULL,        NULL,        NULL,
           NULL,        NULL,        NULL,        NULL,
@@ -2176,7 +2176,7 @@ const uint8_t * const futural_glyph_vectors[128] = {
           NULL,        NULL,        NULL,        NULL
 };
 
-const uint8_t futural_glyph_width[128] = {
+static const uint8_t glyph_width[128] = {
      0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
      0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,   0,
     76,  47,   0,   0,   0,   0,   0,   0,  66,  66,   0,   0,   0,   0,  38,   0,
@@ -2185,4 +2185,10 @@ const uint8_t futural_glyph_width[128] = {
    100, 104, 100,  95,  76, 104,  85, 114,  95,  85,  95,   0,   0,   0,   0,   0,
      0,  90,  90,  85,  90,  85,  57,  90,  90,  38,  47,  80,  38, 142,  90,  90,
     90,  90,  61,  80,  57,  90,  76, 104,  80,  76,  80,   0,   0,   0,   0,   0
+};
+
+const t_plotFont futural_font = {
+  100,
+  glyph_vectors,
+  glyph_width
 };

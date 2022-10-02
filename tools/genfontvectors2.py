@@ -85,7 +85,7 @@ for char in all_chars:
     widths[ord(char)] = left + glyph.char_box[1][0]
     plotter.end()
 
-print('const uint8_t * const '+FONT+'_glyph_vectors[128] = {')
+print('static const uint8_t * const glyph_vectors[128] = {')
 vecs = []
 for i in range(0, 128):
     if chr(i) in all_chars:
@@ -100,7 +100,14 @@ print(',\n'.join(['  ' + ','.join(vecs[i:i+4]) for i in range(0, 128, 4)]))
 print('};')
 print()
 
-print('const uint8_t '+FONT+'_glyph_width[128] = {')
+print('static const uint8_t glyph_width[128] = {')
 str_widths = list(map(lambda w: '%4d' % (w*SCALE), widths))
 print(',\n'.join(['  ' + ','.join(str_widths[i:i+16]) for i in range(0, 128, 16)]))
+print('};')
+print()
+
+print('const t_plotFont '+FONT+'_font = {')
+print('  ' + str(int(GLYPH_ASCENDER * SCALE)) + ',')
+print('  glyph_vectors,')
+print('  glyph_width')
 print('};')

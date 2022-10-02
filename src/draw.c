@@ -1,7 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "draw.h"
-#include "font.h"
+#include "font_futural.h"
 
 #define DRAWCMD_MOVETO          0x00
 #define DRAWCMD_LINETO          0x01
@@ -9,8 +9,13 @@
 #define DRAWCMD_CIRCLE          0x03
 #define DRAWCMD_SET_STR_SCALE   0x04
 #define DRAWCMD_INVOKE          0x05
+#define DRAWCMD_SET_STR_FONT    0x06
 #define DRAWCMD_CHAR_BEGIN      0x20
 #define DRAWCMD_CHAR_END        0xFF
+
+const t_plotFont * const fonts[] = {
+  &futural_font
+};
 
 
 void plot_renderInit(t_plotRender *plot, uint32_t *xyBuf, unsigned xyBufSz)
@@ -104,12 +109,12 @@ void plot_renderLine(t_plotRender *plot, t_fixp x0, t_fixp y0, t_fixp x1, t_fixp
 }
 
 
-static t_dac _plot_renderChar(t_plotRender *plot, t_dac x0, t_dac y0, t_fixp scale, char c)
+static t_dac _plot_renderChar(t_plotRender *plot, const t_plotFont *font, t_dac x0, t_dac y0, t_fixp scale, char c)
 {
   if (c < 0)
     return x0;
   
-  const uint8_t *points = futural_glyph_vectors[c];
+  const uint8_t *points = font->vectors[c];
   if (!points)
     return x0;
 
@@ -119,7 +124,7 @@ static t_dac _plot_renderChar(t_plotRender *plot, t_dac x0, t_dac y0, t_fixp sca
 
   t_dac height = scale * AMP_Y / FIX_1;
   t_dac width = scale * AMP_X / FIX_1;
-  unsigned font_defl_rate = GLYPH_MAX_HEIGHT * FIX_1 / scale;
+  unsigned font_defl_rate = font->ascender * FIX_1 / scale;
   unsigned step = font_defl_rate * FIX_1 / DEFL_RATE;
 
   for (t_fixp i=0; plot->i < plot->xyBufSz; i+=step) {
@@ -128,36 +133,37 @@ static t_dac _plot_renderChar(t_plotRender *plot, t_dac x0, t_dac y0, t_fixp sca
       break;
     t_dac x = (int8_t)points[ii];
     t_dac y = (int8_t)points[ii+1];
-    x = (x * width / GLYPH_MAX_HEIGHT) + x0;
-    y = (y * height / GLYPH_MAX_HEIGHT) + y0;
+    x = (x * width / font->ascender) + x0;
+    y = (y * height / font->ascender) + y0;
     plot->xyBuf[plot->i++] = (uint32_t)x | ((uint32_t)y << 16);
   }
-  return futural_glyph_width[c] * width / GLYPH_MAX_HEIGHT + x0;
+  return font->advancements[c] * width / font->ascender + x0;
 }
 
-static unsigned _plot_renderString(t_plotRender *plot, t_dac x0, t_dac y0, t_fixp scale, const char *str)
+static unsigned _plot_renderString(t_plotRender *plot, const t_plotFont *font, t_dac x0, t_dac y0, t_fixp scale, const char *str)
 {
   unsigned i;
   for (i = 0; str[i] != '\0'; i++) {
     char c = str[i];
-    x0 = _plot_renderChar(plot, x0, y0, scale, c);
+    x0 = _plot_renderChar(plot, font, x0, y0, scale, c);
   }
   return i;
 }
 
-void plot_renderString(t_plotRender *plot, t_fixp x0, t_fixp y0, t_fixp scale, const char *str)
+void plot_renderString(t_plotRender *plot, const t_plotFont *font, t_fixp x0, t_fixp y0, t_fixp scale, const char *str)
 {
-  _plot_renderString(plot, FIX_TO_DAC(x0), FIX_TO_DAC(y0), scale, str);
+  _plot_renderString(plot, font, FIX_TO_DAC(x0), FIX_TO_DAC(y0), scale, str);
 }
 
-t_fixp plot_sizeString(t_fixp scale, const char *str)
+t_fixp plot_sizeString(t_plotFontID fontid, t_fixp scale, const char *str)
 {
-  scale /= GLYPH_MAX_HEIGHT;
+  const t_plotFont *font = fonts[fontid];
+  scale /= font->ascender;
   t_fixp res = 0;
   for (const char *pi = str; *pi != '\0'; pi++) {
     if (*pi < 0)
       continue;
-    res += scale * (t_fixp)futural_glyph_width[*pi];
+    res += scale * (t_fixp)font->advancements[*pi];
   }
   return res;
 }
@@ -171,6 +177,8 @@ void plot_init(t_plot *ctx, uint8_t *cmdBuf, unsigned cmdBufSz)
   ctx->cmdBufSz = cmdBufSz;
   ctx->curX = 0;
   ctx->curY = 0;
+  ctx->stringScale = FIX_1 / 8;
+  ctx->stringFont = fonts[PLOT_FONT_ID_FUTURAL];
   ctx->next = NULL;
 }
 
@@ -212,15 +220,22 @@ int plot_circle(t_plot *ctx, t_fixp radius)
   return 1;
 }
 
-int plot_putString(t_plot *ctx, t_fixp scale, const char *str)
+int plot_selectFont(t_plot *ctx, t_plotFontID fontid, t_fixp scale)
+{
+  if (ctx->cmdBufWriteI+2+4 > ctx->cmdBufSz)
+    return 0;
+  ctx->cmdBuf[ctx->cmdBufWriteI++] = DRAWCMD_SET_STR_FONT;
+  ctx->cmdBuf[ctx->cmdBufWriteI++] = fontid;
+  ctx->cmdBuf[ctx->cmdBufWriteI++] = DRAWCMD_SET_STR_SCALE;
+  ctx->cmdBuf[ctx->cmdBufWriteI++] = scale & 0xFF;
+  ctx->cmdBuf[ctx->cmdBufWriteI++] = (scale >> 8) & 0xFF;
+  ctx->cmdBuf[ctx->cmdBufWriteI++] = (scale >> 16) & 0xFF;
+  return 1;
+}
+
+int plot_putString(t_plot *ctx, const char *str)
 {
   unsigned i = ctx->cmdBufWriteI;
-  if (i+4 >= ctx->cmdBufSz)
-    return 0;
-  ctx->cmdBuf[i++] = DRAWCMD_SET_STR_SCALE;
-  ctx->cmdBuf[i++] = scale & 0xFF;
-  ctx->cmdBuf[i++] = (scale >> 8) & 0xFF;
-  ctx->cmdBuf[i++] = (scale >> 16) & 0xFF;
   while (*str != '\0' && i < ctx->cmdBufSz) {
     ctx->cmdBuf[i++] = *str++;
   }
@@ -270,7 +285,7 @@ int plot_render(t_plot *ctx, t_plotRender *dest)
     uint32_t tmp;
     uintptr_t ptr;
     if (DRAWCMD_CHAR_BEGIN <= cmd && cmd <= DRAWCMD_CHAR_END) {
-      newX = _plot_renderChar(dest, ctx->curX, ctx->curY, ctx->stringScale, cmd);
+      newX = _plot_renderChar(dest, ctx->stringFont, ctx->curX, ctx->curY, ctx->stringScale, cmd);
     } else {
       switch (cmd) {
         case DRAWCMD_MOVETO:
@@ -291,6 +306,9 @@ int plot_render(t_plot *ctx, t_plotRender *dest)
           tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 8;
           tmp |= ctx->cmdBuf[ctx->cmdBufReadI++] << 16;
           _plot_renderCircle(dest, ctx->curX, ctx->curY, tmp);
+          break;
+        case DRAWCMD_SET_STR_FONT:
+          ctx->stringFont = fonts[ctx->cmdBuf[ctx->cmdBufReadI++]];
           break;
         case DRAWCMD_SET_STR_SCALE:
           tmp  = ctx->cmdBuf[ctx->cmdBufReadI++];

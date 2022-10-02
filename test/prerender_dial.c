@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "../src/math.c"
-#include "../src/font.c"
+#include "../src/font_futural.c"
 #include "../src/draw.c"
 
 
@@ -12,6 +12,9 @@ int main(int argc, char *argv[])
 
   plot_init(&ctxDial, cmdBuf1, 1024);
 
+  t_fixp text_height = FIX_1 * 2/16;
+  t_plotFontID text_font = PLOT_FONT_ID_FUTURAL;
+  plot_selectFont(&ctxDial, text_font, text_height);
   for (int i=0; i<60; i++) {
     t_binang ang = i * (BINANG_180 / 60) * 2;
     t_fixp x = sins(ang);
@@ -33,13 +36,12 @@ int main(int argc, char *argv[])
     if (i % 5 == 0) {
       char buf[10];
       sprintf(buf, "%d", i / 5 ?: 12);
-      t_fixp height = FIX_1 * 2/16;
       x0 = x * 12 / 16;
-      y0 = y * 12 / 16 - height/2;
-      t_fixp width = plot_sizeString(height, buf);
+      y0 = y * 12 / 16 - text_height/2;
+      t_fixp width = plot_sizeString(text_font, text_height, buf);
       x0 -= width / 2;
       plot_moveTo(&ctxDial, x0, y0);
-      plot_putString(&ctxDial, height, buf);
+      plot_putString(&ctxDial, buf);
     }
   }
 

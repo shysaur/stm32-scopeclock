@@ -48,7 +48,8 @@ void plotClock(t_plot *plot)
   plot_lineTo(plot, coss(angle) * 11/16, sins(angle) * 11/16, 1);
 
   static const t_fixp time_size = FIX_1/7;
-  t_fixp width = plot_sizeString(time_size, "00:00:00");
+  t_fixp width = plot_sizeString(PLOT_FONT_ID_FUTURAL, time_size, "00:00:00");
+  plot_selectFont(plot, PLOT_FONT_ID_FUTURAL, time_size);
   plot_moveTo(plot, -width/2, -FIX_1*1/3);
   char str[4];
   str[2] = ':';
@@ -57,16 +58,16 @@ void plotClock(t_plot *plot)
   tt = (ms_timestamp / (1000 * 60 * 60)) % 24;
   str[1] = tt % 10 + '0';
   str[0] = tt / 10 + '0';
-  plot_putString(plot, time_size, str);
+  plot_putString(plot, str);
   tt = (ms_timestamp / (1000 * 60)) % 60;
   str[1] = tt % 10 + '0';
   str[0] = tt / 10 + '0';
-  plot_putString(plot, time_size, str);
+  plot_putString(plot, str);
   tt = (ms_timestamp / 1000) % 60;
   str[2] = '\0';
   str[1] = tt % 10 + '0';
   str[0] = tt / 10 + '0';
-  plot_putString(plot, time_size, str);
+  plot_putString(plot, str);
 }
 
 
@@ -81,11 +82,12 @@ void plotCalibBox(t_plot *plot)
   plot_moveTo(plot, FIX_1, FIX_1);
   plot_lineTo(plot, -FIX_1, -FIX_1, true);
 
+  plot_selectFont(plot, PLOT_FONT_ID_FUTURAL, FIX_1/16);
   plot_moveTo(plot, -FIX_1*15/16, -FIX_1*13/16);
-  plot_putString(plot, FIX_1/16, "CALIBRATION");
+  plot_putString(plot, "CALIBRATION");
   plot_moveTo(plot, -FIX_1*15/16, -FIX_1*15/16);
-  plot_putString(plot, FIX_1/16, "Version ");
-  plot_putString(plot, FIX_1/16, version_tag);
+  plot_putString(plot, "Version ");
+  plot_putString(plot, version_tag);
 
   if (ms_counter >= 5000)
     rl_setPlotUpdateFunc(plotClock);

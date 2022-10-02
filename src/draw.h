@@ -16,6 +16,17 @@ typedef int32_t t_dac;
 #define DEFL_RATE 100
 
 typedef struct {
+  uint32_t ascender;
+  const uint8_t * const *vectors;
+  const uint8_t *advancements;
+} t_plotFont;
+
+typedef uint8_t t_plotFontID;
+enum {
+  PLOT_FONT_ID_FUTURAL = 0,
+};
+
+typedef struct {
   unsigned i;
   uint32_t *xyBuf;
   unsigned xyBufSz;
@@ -28,6 +39,7 @@ typedef struct t_plot {
   unsigned cmdBufSz;
   t_dac curX, curY;
   t_fixp stringScale;
+  const t_plotFont *stringFont;
   struct t_plot *next;
 } t_plot;
 
@@ -35,16 +47,17 @@ typedef struct t_plot {
 void plot_renderInit(t_plotRender *plot, uint32_t *xyBuf, unsigned xyBufSz);
 void plot_renderCircle(t_plotRender *plot, t_fixp x0, t_fixp y0, t_fixp radius);
 void plot_renderLine(t_plotRender *plot, t_fixp x0, t_fixp y0, t_fixp x1, t_fixp y1, int lastDot);
-void plot_renderString(t_plotRender *plot, t_fixp x0, t_fixp y0, t_fixp scale, const char *str);
+void plot_renderString(t_plotRender *plot, const t_plotFont *font, t_fixp x0, t_fixp y0, t_fixp scale, const char *str);
 
 void plot_init(t_plot *ctx, uint8_t *cmdBuf, unsigned cmdBufSz);
 int plot_moveTo(t_plot *ctx, t_fixp x, t_fixp y);
 int plot_lineTo(t_plot *ctx, t_fixp x, t_fixp y, int lastDot);
 int plot_circle(t_plot *ctx, t_fixp radius);
-int plot_putString(t_plot *ctx, t_fixp scale, const char *str);
+int plot_selectFont(t_plot *ctx, t_plotFontID fontid, t_fixp scale);
+int plot_putString(t_plot *ctx, const char *str);
 int plot_invoke(t_plot *ctx, t_plot *other);
 int plot_render(t_plot *ctx, t_plotRender *dest);
 
-t_fixp plot_sizeString(t_fixp scale, const char *str);
+t_fixp plot_sizeString(t_plotFontID fontid, t_fixp scale, const char *str);
 
 #endif
