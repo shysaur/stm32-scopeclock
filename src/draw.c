@@ -248,14 +248,19 @@ int plot_render(t_plot *ctx, t_plotRender *dest)
       return 0;
     ctx->next = NULL;
   }
-  while (ctx->cmdBufReadI < ctx->cmdBufWriteI) {
-    unsigned oldPlotI = dest->i;
-    unsigned oldCmdBufReadI = ctx->cmdBufReadI;
+
+  unsigned oldPlotI = dest->i;
+  unsigned oldCmdBufReadI = ctx->cmdBufReadI;
+  t_dac newX = ctx->curX;
+  t_dac newY = ctx->curY;
+  while (ctx->cmdBufReadI < ctx->cmdBufWriteI && dest->i < dest->xyBufSz) {
+    oldPlotI = dest->i;
+    oldCmdBufReadI = ctx->cmdBufReadI;
+    ctx->curX = newX;
+    ctx->curY = newY;
     uint8_t cmd = ctx->cmdBuf[ctx->cmdBufReadI++];
     uint32_t tmp;
     uintptr_t ptr;
-    t_dac newX = ctx->curX;
-    t_dac newY = ctx->curY;
     const char *str;
     switch (cmd) {
       case DRAWCMD_MOVETO:
@@ -295,17 +300,20 @@ int plot_render(t_plot *ctx, t_plotRender *dest)
           return 0;
         ctx->next = NULL;
     }
-    if (dest->i == dest->xyBufSz) {
-      if (oldPlotI > 0) {
-        dest->i = oldPlotI;
-        ctx->cmdBufReadI = oldCmdBufReadI;
-      }
-      return 0;
-    }
-    ctx->curX = newX;
-    ctx->curY = newY;
   }
-  ctx->cmdBufReadI = ctx->cmdBufWriteI = 0;
-  return 1;
+
+  int finished = 0;
+  if (dest->i >= dest->xyBufSz) {
+    if (oldPlotI > 0) {
+      // only one command is left and it overflowed
+      dest->i = oldPlotI;
+      ctx->cmdBufReadI = oldCmdBufReadI;
+    }
+  }
+  if (ctx->cmdBufReadI >= ctx->cmdBufWriteI) {
+    ctx->cmdBufReadI = ctx->cmdBufWriteI = 0;
+    finished = 1;
+  }
+  return finished;
 }
 
