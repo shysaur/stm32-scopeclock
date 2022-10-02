@@ -48,8 +48,8 @@ void plotClock(t_plot *plot)
   plot_lineTo(plot, coss(angle) * 11/16, sins(angle) * 11/16, 1);
 
   static const t_fixp time_size = FIX_1/7;
-  t_fixp width = plot_sizeString(PLOT_FONT_ID_FUTURAL, time_size, "00:00:00");
-  plot_selectFont(plot, PLOT_FONT_ID_FUTURAL, time_size);
+  t_fixp width = plot_sizeString(PLOT_FONT_ID_FUTURAM, time_size, "00:00:00");
+  plot_selectFont(plot, PLOT_FONT_ID_FUTURAM, time_size);
   plot_moveTo(plot, -width/2, -FIX_1*1/3);
   char str[4];
   str[2] = ':';
