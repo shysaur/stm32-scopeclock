@@ -1,12 +1,9 @@
 #include "stm32f1xx.h"
 #include "math.h"
 #include "draw.h"
+#include "utils.h"
 #include "dial_pic.h"
 #include <stdint.h>
-
-#define SET_BITS(dest, bits, mask) do { \
-    (dest) = (dest) & ~(mask) | (bits); \
-  } while (0)
 
 #define DAC_BUFFER_SZ 900
 uint32_t dac_buffer[2][DAC_BUFFER_SZ];
