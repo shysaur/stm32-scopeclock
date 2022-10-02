@@ -1,5 +1,5 @@
-#ifndef FONT_H
-#define FONT_H
+#ifndef FONT_FUTURAL_H
+#define FONT_FUTURAL_H
 
 #include "draw.h"
 #include <stdint.h>

@@ -24,6 +24,7 @@ typedef struct {
 typedef uint8_t t_plotFontID;
 enum {
   PLOT_FONT_ID_FUTURAL = 0,
+  PLOT_FONT_ID_FUTURAM
 };
 
 typedef struct {

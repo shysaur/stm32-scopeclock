@@ -2,6 +2,7 @@
 #include <stddef.h>
 #include "draw.h"
 #include "font_futural.h"
+#include "font_futuram.h"
 
 #define DRAWCMD_MOVETO          0x00
 #define DRAWCMD_LINETO          0x01
@@ -14,7 +15,8 @@
 #define DRAWCMD_CHAR_END        0xFF
 
 const t_plotFont * const fonts[] = {
-  &futural_font
+  &futural_font,
+  &futuram_font
 };
 
 
