@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "dial_pic.h"
 #include "render_loop.h"
+#include "version.h"
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -79,6 +80,12 @@ void plotCalibBox(t_plot *plot)
   plot_lineTo(plot, FIX_1, -FIX_1, true);
   plot_moveTo(plot, FIX_1, FIX_1);
   plot_lineTo(plot, -FIX_1, -FIX_1, true);
+
+  plot_moveTo(plot, -FIX_1*15/16, -FIX_1*13/16);
+  plot_putString(plot, FIX_1/16, "CALIBRATION");
+  plot_moveTo(plot, -FIX_1*15/16, -FIX_1*15/16);
+  plot_putString(plot, FIX_1/16, "Version ");
+  plot_putString(plot, FIX_1/16, version_tag);
 
   if (ms_counter >= 5000)
     rl_setPlotUpdateFunc(plotClock);

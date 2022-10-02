@@ -15,7 +15,7 @@ LD_CONFIG = $(SRC_DIR)/ld_config.ld
 
 C_OBJ = $(patsubst %, $(OBJ_DIR)/%, $(notdir $(C_SRC:.c=.o)))
 ASM_OBJ = $(patsubst %, $(OBJ_DIR)/%, $(notdir $(ASM_SRC:.s=.o)))
-OBJ = $(C_OBJ) $(ASM_OBJ)
+OBJ = $(C_OBJ) $(ASM_OBJ) $(OBJ_DIR)/version.o
 DEPS = $(C_OBJ:.o=.d)
 
 CPUFLAGS := -mcpu=cortex-m3 -mthumb -DSTM32F100xB
@@ -36,10 +36,17 @@ TEST_SRC = $(wildcard $(TEST_DIR)/*.c)
 TEST_OUT = $(TEST_SRC:.c=)
 TEST_DEPS = $(TEST_SRC:.c=.d)
 
+VERSION := $(shell if ! git describe --always 2> /dev/null; then echo 0000000; fi)
+
 .PHONY: all
 all: tests $(OUTPUT_BIN)
 
 -include $(DEPS)
+
+.PHONY: $(OBJ_DIR)/version.o
+$(OBJ_DIR)/version.o:
+	echo 'char * const version_tag = "$(VERSION)";' > $(OBJ_DIR)/version.c
+	$(E_CC) $(CFLAGS) -c $(OBJ_DIR)/version.c -o $@
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
 	$(E_CC) $(CFLAGS) -MMD -c $< -o $@
