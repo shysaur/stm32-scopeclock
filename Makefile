@@ -4,17 +4,19 @@ E_CC?=arm-none-eabi-gcc
 E_OBJCOPY?=arm-none-eabi-objcopy
 
 OUTPUT:=scopeclock
-DEBUG?=1
+DEBUG?=0
 OBJ_DIR = ./obj
 SRC_DIR = ./src
+LIB_DIR = ./lib
 TEST_DIR = ./test
 
-C_SRC += $(wildcard $(SRC_DIR)/*.c)
+C_LIB_SRC += $(wildcard $(LIB_DIR)/*.c)
+C_SRC += $(wildcard $(SRC_DIR)/*.c) $(C_LIB_SRC)
 ASM_SRC += $(wildcard $(SRC_DIR)/*.s)
 LD_CONFIG = $(SRC_DIR)/ld_config.ld
 
-C_OBJ = $(patsubst %, $(OBJ_DIR)/%, $(notdir $(C_SRC:.c=.o)))
-ASM_OBJ = $(patsubst %, $(OBJ_DIR)/%, $(notdir $(ASM_SRC:.s=.o)))
+C_OBJ = $(patsubst %, $(OBJ_DIR)/%, $(C_SRC:.c=.o))
+ASM_OBJ = $(patsubst %, $(OBJ_DIR)/%, $(ASM_SRC:.s=.o))
 OBJ = $(C_OBJ) $(ASM_OBJ) $(OBJ_DIR)/version.o
 DEPS = $(C_OBJ:.o=.d)
 
@@ -33,10 +35,6 @@ OUTPUT_BIN = $(OUTPUT).bin
 OUTPUT_MAP = $(OUTPUT).map
 
 TEST_SRC = $(wildcard $(TEST_DIR)/*.c)
-TEST_SRC_DEPS = $(SRC_DIR)/draw.c \
-  $(SRC_DIR)/font_futural.c \
-  $(SRC_DIR)/font_futuram.c \
-  $(SRC_DIR)/math.c
 TEST_OUT = $(TEST_SRC:.c=)
 TEST_DEPS = $(TEST_SRC:.c=.d)
 
@@ -52,11 +50,11 @@ $(OBJ_DIR)/version.o:
 	echo 'char * const version_tag = "$(VERSION)";' > $(OBJ_DIR)/version.c
 	$(E_CC) $(CFLAGS) -c $(OBJ_DIR)/version.c -o $@
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.c
-	$(E_CC) $(CFLAGS) -MMD -c $< -o $@
+$(OBJ_DIR)/%.o: %.c
+	$(E_CC) $(CFLAGS) -MMD -c -I $(LIB_DIR) -o $@ $<
 
-$(OBJ_DIR)/%.o: $(SRC_DIR)/%.s
-	$(E_CC) $(ASMFLAGS) -MMD -c $< -o $@
+$(OBJ_DIR)/%.o: %.s
+	$(E_CC) $(ASMFLAGS) -MMD -c -I $(LIB_DIR) -o $@ $<
 
 $(OUTPUT_ELF): $(OBJ) $(LD_CONFIG)
 	$(E_CC) $(LDFLAGS) -T$(LD_CONFIG) $(OBJ) -o $@
@@ -68,6 +66,8 @@ $(OBJ): | $(OBJ_DIR)
 
 $(OBJ_DIR):
 	mkdir -p $@
+	mkdir -p $@/src
+	mkdir -p $@/lib
 
 .PHONY: flash
 flash:
@@ -78,8 +78,8 @@ tests: $(TEST_OUT)
 
 -include $(TEST_DEPS)
 
-$(TEST_DIR)/%: $(TEST_DIR)/%.c
-	$(CC) -g -MMD -DTEST $< $(TEST_SRC_DEPS) -o $@ -I $(SRC_DIR)
+$(TEST_DIR)/%: $(TEST_DIR)/%.c $(C_LIB_SRC)
+	$(CC) -g -MMD -DTEST -o $@ -I $(LIB_DIR) $< $(C_LIB_SRC)
 
 .PHONY: clean
 clean:

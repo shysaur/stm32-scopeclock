@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../src/math.h"
-#include "../src/draw.h"
+#include "math.h"
+#include "draw.h"
 
 
 int main(int argc, char *argv[])

@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "../src/math.h"
-#include "../src/draw.h"
+#include "math.h"
+#include "draw.h"
 
 #define GET_X(n) ((n) & 0xFFF)
 #define GET_Y(n) (((n) >> 16) & 0xFFF)
