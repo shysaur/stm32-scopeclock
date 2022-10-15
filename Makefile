@@ -5,11 +5,12 @@ OUTPUT_BASE	:=scopeclock
 DEBUG		?= 0
 TARGET	?=stm32
 
-OBJ_DIR 		:= ./obj/$(TARGET)
-SRC_DIR 		:= ./src
-LIB_DIR 		:= ./lib
-TARGET_DIR 	:= ./target/$(TARGET)
-TEST_DIR 		:= ./test
+OBJ_DIR 		 := ./obj/$(TARGET)
+SRC_DIR 		 := ./src
+LIB_DIR 		 := ./lib
+TARGET_DIR 	 := ./target/$(TARGET)
+TEST_OBJ_DIR := ./obj/test
+TEST_DIR 		 := ./test
 
 C_LIB_SRC += $(wildcard $(LIB_DIR)/*.c)
 C_SRC += $(wildcard $(SRC_DIR)/*.c) $(C_LIB_SRC)
@@ -28,8 +29,8 @@ endif
 CFLAGS += -DTARGET_$(shell echo $(TARGET) | tr '[a-z]' '[A-Z]')
 
 TEST_SRC = $(wildcard $(TEST_DIR)/*.c)
-TEST_OUT = $(TEST_SRC:.c=)
-TEST_DEPS = $(TEST_SRC:.c=.d)
+TEST_OUT = $(patsubst %, $(TEST_OBJ_DIR)/%, $(notdir $(TEST_SRC:.c=)))
+TEST_DEPS = $(TEST_OUT:%=%.d)
 
 VERSION := $(shell if ! git describe --always 2> /dev/null; then echo 0000000; fi)
 
@@ -59,16 +60,22 @@ $(OBJ_DIR):
 	mkdir -p $@/lib
 	mkdir -p $@/$(TARGET_DIR)
 
+
 .PHONY: tests
 tests: $(TEST_OUT)
 
 -include $(TEST_DEPS)
 
-$(TEST_DIR)/%: $(TEST_DIR)/%.c $(C_LIB_SRC)
+$(TEST_OBJ_DIR)/%: $(TEST_DIR)/%.c $(C_LIB_SRC)
 	$(CC) -g -MMD -DTEST -o $@ -I $(LIB_DIR) $< $(C_LIB_SRC)
+
+$(TEST_OUT): | $(TEST_OBJ_DIR)
+
+$(TEST_OBJ_DIR):
+	mkdir -p $@
+
 
 .PHONY: clean
 clean:
 	rm -rf ./obj
-	rm -f *.elf *.bin *.map *.log *.s
-	rm -rf $(TEST_OUT) $(TEST_DIR)/*.d $(TEST_DIR)/*.dSYM
+	rm -f $(OUTPUT) *.elf *.bin *.map
