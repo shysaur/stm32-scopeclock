@@ -1,0 +1,27 @@
+E_CC      := arm-none-eabi-gcc
+E_OBJCOPY := arm-none-eabi-objcopy
+
+LD_CONFIG := $(TARGET_DIR)/ld_config.ld
+
+OUTPUT_ELF := $(OUTPUT_BASE).elf
+OUTPUT_BIN := $(OUTPUT_BASE).bin
+OUTPUT_MAP := $(OUTPUT_BASE).map
+OUTPUT     := $(OUTPUT_BIN)
+
+CPUFLAGS  := -mcpu=cortex-m3 -mthumb -DSTM32F100xB
+CFLAGS    += -ffreestanding -nostdlib $(CPUFLAGS) -I $(TARGET_DIR)
+ASMFLAGS  += -ffreestanding -nostdlib $(CPUFLAGS)
+LDFLAGS   += -ffreestanding -nostdlib $(CPUFLAGS) -Wl,-Map=$(OUTPUT_MAP) -Wl,--gc-sections
+
+.PHONY: $(OUTPUT_BASE)
+$(OUTPUT_BASE): $(OUTPUT_ELF)
+
+$(OUTPUT_ELF): $(OBJ) $(LD_CONFIG)
+	$(E_CC) $(LDFLAGS) -T$(LD_CONFIG) $(OBJ) -o $@
+
+%.bin: %.elf
+	$(E_OBJCOPY) -O binary $< $@
+
+.PHONY: flash
+flash:
+	st-flash --reset write $(OUTPUT_BIN) 0x08000000
