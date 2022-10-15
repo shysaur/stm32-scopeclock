@@ -3,8 +3,7 @@
 
 #include "draw.h"
 #include <stdbool.h>
-
-/* Uses DAC, DMA1/3, TIM6 */
+#include <stdint.h>
 
 typedef void t_plot_func(t_plot *plot);
 
@@ -12,5 +11,6 @@ void rl_init(t_plot_func *plotUpdFunc);
 void rl_setPlotUpdateFunc(t_plot_func *plotUpdFunc);
 void rl_setEnableFPSDisplay(bool enable);
 void rl_update(void);
+uint32_t rl_getMsTime(void);
 
 #endif

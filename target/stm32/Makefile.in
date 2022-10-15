@@ -9,7 +9,7 @@ OUTPUT_MAP := $(OUTPUT_BASE).map
 OUTPUT     := $(OUTPUT_BIN)
 
 CPUFLAGS  := -mcpu=cortex-m3 -mthumb -DSTM32F100xB
-CFLAGS    += -ffreestanding -nostdlib $(CPUFLAGS) -I $(TARGET_DIR)
+CFLAGS    += -ffreestanding -nostdlib $(CPUFLAGS) -I$(TARGET_DIR)/include
 ASMFLAGS  += -ffreestanding -nostdlib $(CPUFLAGS)
 LDFLAGS   += -ffreestanding -nostdlib $(CPUFLAGS) -Wl,-Map=$(OUTPUT_MAP) -Wl,--gc-sections
 

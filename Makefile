@@ -13,13 +13,19 @@ TEST_OBJ_DIR := ./obj/test
 TEST_DIR 		 := ./test
 
 C_LIB_SRC += $(wildcard $(LIB_DIR)/*.c)
-C_SRC += $(wildcard $(SRC_DIR)/*.c) $(C_LIB_SRC)
-ASM_SRC += $(wildcard $(SRC_DIR)/*.s) $(wildcard $(TARGET_DIR)/*.s)
+C_TGT_SRC += $(wildcard $(TARGET_DIR)/*.c)
+C_APP_SRC += $(wildcard $(SRC_DIR)/*.c)
+C_SRC     += $(C_APP_SRC) $(C_TGT_SRC) $(C_LIB_SRC)
+C_OBJ     := $(patsubst %, $(OBJ_DIR)/%, $(C_SRC:.c=.o))
 
-C_OBJ = $(patsubst %, $(OBJ_DIR)/%, $(C_SRC:.c=.o))
-ASM_OBJ = $(patsubst %, $(OBJ_DIR)/%, $(ASM_SRC:.s=.o))
-OBJ = $(C_OBJ) $(ASM_OBJ) $(OBJ_DIR)/version.o
-DEPS = $(C_OBJ:.o=.d)
+ASM_LIB_SRC += $(wildcard $(LIB_DIR)/*.s)
+ASM_TGT_SRC += $(wildcard $(TARGET_DIR)/*.s)
+ASM_APP_SRC += $(wildcard $(SRC_DIR)/*.s)
+ASM_SRC     += $(ASM_APP_SRC) $(ASM_TGT_SRC) $(ASM_LIB_SRC)
+ASM_OBJ     := $(patsubst %, $(OBJ_DIR)/%, $(ASM_SRC:.s=.o))
+
+OBJ         := $(C_OBJ) $(ASM_OBJ) $(OBJ_DIR)/version.o
+DEPS        := $(C_OBJ:.o=.d)
 
 ifeq ($(DEBUG),0)
   CFLAGS += -Os
@@ -27,6 +33,7 @@ else
   CFLAGS += -g -DDEBUG
 endif
 CFLAGS += -DTARGET_$(shell echo $(TARGET) | tr '[a-z]' '[A-Z]')
+CFLAGS += -I$(SRC_DIR) -I$(LIB_DIR) -I$(TARGET_DIR)
 
 TEST_SRC = $(wildcard $(TEST_DIR)/*.c)
 TEST_OUT = $(patsubst %, $(TEST_OBJ_DIR)/%, $(notdir $(TEST_SRC:.c=)))
@@ -47,10 +54,10 @@ $(OBJ_DIR)/version.o:
 	$(E_CC) $(CFLAGS) -c $(OBJ_DIR)/version.c -o $@
 
 $(OBJ_DIR)/%.o: %.c
-	$(E_CC) $(CFLAGS) -MMD -c -I $(LIB_DIR) -o $@ $<
+	$(E_CC) $(CFLAGS) -MMD -c -o $@ $<
 
 $(OBJ_DIR)/%.o: %.s
-	$(E_CC) $(ASMFLAGS) -MMD -c -I $(LIB_DIR) -o $@ $<
+	$(E_CC) $(ASMFLAGS) -MMD -c -o $@ $<
 
 $(OBJ): | $(OBJ_DIR)
 

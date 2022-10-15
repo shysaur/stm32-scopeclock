@@ -1,4 +1,3 @@
-#include "stm32f1xx.h"
 #include "math.h"
 #include "draw.h"
 #include "utils.h"
@@ -8,26 +7,11 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-volatile uint32_t ms_counter = 0;
-
-
-void configPLLClock(void)
-{
-  /* SYSCLK to 24MHz with 8MHz ext. crystal */
-  SET_BITS(RCC->CR, RCC_CR_HSEON, RCC_CR_HSEON_Msk);
-  RCC->CFGR2 = 0;
-  SET_BITS(RCC->CFGR,
-      RCC_CFGR_PLLSRC | (1 << RCC_CFGR_PLLMULL_Pos),
-      RCC_CFGR_PLLSRC_Msk | RCC_CFGR_PLLMULL_Msk);
-  SET_BITS(RCC->CR, RCC_CR_PLLON, RCC_CR_PLLON_Msk);
-  SET_BITS(RCC->CFGR, 2 << RCC_CFGR_SW_Pos, RCC_CFGR_SW_Msk);
-}
-
 
 void plotClock(t_plot *plot)
 {
   t_binang angle;
-  uint32_t ms_timestamp = ms_counter;
+  uint32_t ms_timestamp = rl_getMsTime();
 
   initDialPlot();
   plot_invoke(plot, &dial_plot);
@@ -89,34 +73,13 @@ void plotCalibBox(t_plot *plot)
   plot_putString(plot, "Version ");
   plot_putString(plot, version_tag);
 
-  if (ms_counter >= 5000)
+  if (rl_getMsTime() >= 5000)
     rl_setPlotUpdateFunc(plotClock);
-}
-
-
-void SysTick_Handler(void)
-{
-  ms_counter++;
-  if (ms_counter % 500 == 0) {
-    uint32_t n = (ms_counter / 500) & 1;
-    SET_BITS(GPIOC->ODR, n << 9, 1 << 9);
-  }
 }
 
 
 void main(void)
 {
-  configPLLClock();
-  SysTick_Config(24 * 1000);
-
-  /* Configure LED GPIOs */
-  SET_BITS(RCC->APB2ENR, RCC_APB2ENR_IOPCEN, RCC_APB2ENR_IOPCEN_Msk);
-  SET_BITS(GPIOC->CRH, 
-    (0 << GPIO_CRH_CNF8_Pos) | (3 << GPIO_CRH_MODE8_Pos) |
-    (0 << GPIO_CRH_CNF9_Pos) | (3 << GPIO_CRH_MODE9_Pos), 
-    GPIO_CRH_CNF8_Msk | GPIO_CRH_MODE8_Msk |
-    GPIO_CRH_CNF9_Msk | GPIO_CRH_MODE9_Msk);
-
   rl_init(plotCalibBox);
   
   for (;;) {
