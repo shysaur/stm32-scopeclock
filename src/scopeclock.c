@@ -78,7 +78,11 @@ void plotCalibBox(t_plot *plot)
 }
 
 
+#ifdef TARGET_HOST
+int main(int argc, char *argv[])
+#else
 void main(void)
+#endif
 {
   rl_init(plotCalibBox);
   
@@ -86,4 +90,8 @@ void main(void)
     //__WFI();
     rl_update();
   }
+
+  #ifdef TARGET_HOST
+  return 0;
+  #endif
 }
