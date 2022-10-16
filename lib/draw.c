@@ -56,11 +56,11 @@ static void _plot_renderLine(t_plotRender *plot, t_dac px, t_dac py, t_dac px1, 
   t_fixp x = px * FIX_1;
   t_fixp y = py * FIX_1;
   for (int i=0; i<n_steps && plot->i < plot->xyBufSz; i++) {
-    x += stepx;
-    y += stepy;
     t_dac xx = x / FIX_1;
     t_dac yy = y / FIX_1;
     plot->xyBuf[plot->i++] = (uint32_t)xx | ((uint32_t)yy << 16);
+    x += stepx;
+    y += stepy;
   }
 }
 
