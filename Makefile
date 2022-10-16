@@ -1,31 +1,31 @@
 .SUFFIXES: # disable builtin rules
 
-OUTPUT_BASE	:=scopeclock
+OUTPUT_BASE	 :=scopeclock
 
-DEBUG		?= 0
-TARGET	?=stm32
+DEBUG        ?=1
+TARGET       ?=stm32
 
-OBJ_DIR 		 := ./obj/$(TARGET)
-SRC_DIR 		 := ./src
-LIB_DIR 		 := ./lib
-TARGET_DIR 	 := ./target/$(TARGET)
+OBJ_DIR      := ./obj/$(TARGET)
+SRC_DIR      := ./src
+LIB_DIR      := ./lib
+TARGET_DIR   := ./target/$(TARGET)
 TEST_OBJ_DIR := ./obj/test
-TEST_DIR 		 := ./test
+TEST_DIR     := ./test
 
-C_LIB_SRC += $(wildcard $(LIB_DIR)/*.c)
-C_TGT_SRC += $(wildcard $(TARGET_DIR)/*.c)
-C_APP_SRC += $(wildcard $(SRC_DIR)/*.c)
-C_SRC     += $(C_APP_SRC) $(C_TGT_SRC) $(C_LIB_SRC)
-C_OBJ     := $(patsubst %, $(OBJ_DIR)/%, $(C_SRC:.c=.o))
+C_LIB_SRC    += $(wildcard $(LIB_DIR)/*.c)
+C_TGT_SRC    += $(wildcard $(TARGET_DIR)/*.c)
+C_APP_SRC    += $(wildcard $(SRC_DIR)/*.c)
+C_SRC        += $(C_APP_SRC) $(C_TGT_SRC) $(C_LIB_SRC)
+C_OBJ        := $(patsubst %, $(OBJ_DIR)/%, $(C_SRC:.c=.o))
 
-ASM_LIB_SRC += $(wildcard $(LIB_DIR)/*.s)
-ASM_TGT_SRC += $(wildcard $(TARGET_DIR)/*.s)
-ASM_APP_SRC += $(wildcard $(SRC_DIR)/*.s)
-ASM_SRC     += $(ASM_APP_SRC) $(ASM_TGT_SRC) $(ASM_LIB_SRC)
-ASM_OBJ     := $(patsubst %, $(OBJ_DIR)/%, $(ASM_SRC:.s=.o))
+ASM_LIB_SRC  += $(wildcard $(LIB_DIR)/*.s)
+ASM_TGT_SRC  += $(wildcard $(TARGET_DIR)/*.s)
+ASM_APP_SRC  += $(wildcard $(SRC_DIR)/*.s)
+ASM_SRC      += $(ASM_APP_SRC) $(ASM_TGT_SRC) $(ASM_LIB_SRC)
+ASM_OBJ      := $(patsubst %, $(OBJ_DIR)/%, $(ASM_SRC:.s=.o))
 
-OBJ         := $(C_OBJ) $(ASM_OBJ) $(OBJ_DIR)/version.o
-DEPS        := $(C_OBJ:.o=.d)
+OBJ          := $(C_OBJ) $(ASM_OBJ) $(OBJ_DIR)/version.o
+DEPS         := $(C_OBJ:.o=.d)
 
 ifeq ($(DEBUG),0)
   CFLAGS += -Os

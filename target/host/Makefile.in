@@ -1,0 +1,9 @@
+E_CC      := $(CC)
+
+OUTPUT     := $(OUTPUT_BASE)
+
+CFLAGS     += -I$(TARGET_DIR)/include $(shell pkg-config --cflags sdl2)
+LDFLAGS    += $(shell pkg-config --libs sdl2)
+
+$(OUTPUT_BASE): $(OBJ)
+	$(E_CC) $(LDFLAGS) $(OBJ) -o $@
