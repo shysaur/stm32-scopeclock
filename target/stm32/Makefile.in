@@ -14,7 +14,7 @@ ASMFLAGS  += -ffreestanding -nostdlib $(CPUFLAGS)
 LDFLAGS   += -ffreestanding -nostdlib $(CPUFLAGS) -Wl,-Map=$(OUTPUT_MAP) -Wl,--gc-sections
 
 .PHONY: $(OUTPUT_BASE)
-$(OUTPUT_BASE): $(OUTPUT_ELF)
+$(OUTPUT_BASE): $(OUTPUT_BIN)
 
 $(OUTPUT_ELF): $(OBJ) $(LD_CONFIG)
 	$(E_CC) $(LDFLAGS) -T$(LD_CONFIG) $(OBJ) -o $@
