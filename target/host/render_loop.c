@@ -74,12 +74,13 @@ void rl_update(void)
   SDL_RenderClear(renderer);
 
   int cur_window_w, cur_window_h;
-  SDL_GetWindowSize(window, &cur_window_w, &cur_window_h);
+  SDL_GetRendererOutputSize(renderer, &cur_window_w, &cur_window_h);
   float off_x = (float)cur_window_w / 2.0;
   float off_y = (float)cur_window_h / 2.0;
   float scale_x = (float)cur_window_w * 9.0 / 10.0;
   float scale_y = (float)cur_window_h * 9.0 / 10.0;
   float scale = MIN(scale_x, scale_y) / 2.0;
+  float dot_size = scale / 120.0;
 
   SDL_SetRenderDrawColor(renderer, 206, 255, 210, SDL_ALPHA_OPAQUE);
   for (unsigned i=0; i<render.i; i++) {
@@ -89,11 +90,11 @@ void rl_update(void)
     float fy = (float)((int)y - (int)OFF_Y) / (float)AMP_Y;
 
     SDL_FRect rect;
-    rect.x = fx * scale + off_x - 1.0;
-    rect.y = -fy * scale + off_y - 1.0;
-    rect.w = 2.0;
-    rect.h = 2.0;
-    SDL_RenderDrawRectF(renderer, &rect);
+    rect.x = fx * scale + off_x - (dot_size / 2.0);
+    rect.y = -fy * scale + off_y - (dot_size / 2.0);
+    rect.w = dot_size;
+    rect.h = dot_size;
+    SDL_RenderFillRectF(renderer, &rect);
   }
 
   SDL_RenderPresent(renderer);
@@ -127,7 +128,7 @@ void rl_init(t_plot_func *plotUpdFunc)
   sim_boot_time = (uint32_t)rl_getRealMsTime();
   
   SDL_Init(SDL_INIT_VIDEO);
-  SDL_CreateWindowAndRenderer(640, 480, SDL_WINDOW_RESIZABLE, &window, &renderer);
+  SDL_CreateWindowAndRenderer(640, 480, SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI, &window, &renderer);
   SDL_SetWindowTitle(window, "stm32-scopeclock");
 
   plot_update_func = plotUpdFunc;

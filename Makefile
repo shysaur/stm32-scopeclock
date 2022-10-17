@@ -2,7 +2,7 @@
 
 OUTPUT_BASE	 :=scopeclock
 
-DEBUG        ?=1
+DEBUG        ?=0
 TARGET       ?=stm32
 
 OBJ_DIR      := ./obj/$(TARGET)
